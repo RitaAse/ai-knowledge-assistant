@@ -1,0 +1,1 @@
+What is this application, and how is it organized?
