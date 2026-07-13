@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.exceptions import AppException
 
-
+ 
 logger = structlog.get_logger()
 
 
