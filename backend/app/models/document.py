@@ -19,8 +19,34 @@ class Document(Base):
         nullable=False,
     )
 
+    file_path: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+    )
+
+    file_type: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+    )
+
+    file_size: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    processing_status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="UPLOADED",
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC),
     )
 
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
