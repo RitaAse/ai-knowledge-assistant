@@ -4,9 +4,15 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
 
+from app.core.status import DocumentStatus
 from app.db.dependencies import get_db
 from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from app.schemas.document import DocumentCreate, DocumentResponse
+from app.services.document_processor import (
+    extract_text_from_pdf,
+    chunk_text,
+)
 
 router = APIRouter(
     prefix="/documents",
@@ -56,16 +62,51 @@ def upload_document(
     with file_path.open("wb") as buffer:
         buffer.write(file.file.read())
 
-    document = Document(
+    db_document = Document(
         filename=file.filename,
         file_path=str(file_path),
         file_type=file.content_type,
         file_size=file_path.stat().st_size,
-        processing_status="UPLOADED",
+        processing_status=DocumentStatus.UPLOADED,
     )
 
-    db.add(document)
+    db.add(db_document)
     db.commit()
-    db.refresh(document)
+    db.refresh(db_document)
 
-    return document
+    db_document.processing_status = DocumentStatus.PROCESSING
+
+    db.commit()
+    db.refresh(db_document)
+
+    try:
+        text = extract_text_from_pdf(
+            db_document.file_path
+        )
+
+        chunks = chunk_text(text)
+
+        for index, chunk in enumerate(chunks):
+            db_chunk = DocumentChunk(
+                document_id=db_document.id,
+                chunk_index=index,
+                content=chunk,
+            )
+
+            db.add(db_chunk)
+
+        db.commit()
+
+        db_document.processing_status = DocumentStatus.COMPLETED
+
+        db.commit()
+        db.refresh(db_document)
+
+    except Exception as error:
+        print(error)
+        db_document.processing_status = DocumentStatus.FAILED
+
+        db.commit()
+        db.refresh(db_document)
+
+    return db_document

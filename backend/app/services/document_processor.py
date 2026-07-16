@@ -1,6 +1,7 @@
 import fitz
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
 def extract_text_from_pdf(file_path: str) -> str:
     """
     Extract text content from a PDF file.
