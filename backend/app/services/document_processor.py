@@ -1,5 +1,5 @@
 import fitz
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 def extract_text_from_pdf(file_path: str) -> str:
     """
@@ -24,3 +24,20 @@ def extract_text_from_pdf(file_path: str) -> str:
     document.close()
 
     return "\n".join(extracted_text)
+
+def chunk_text(
+    text: str,
+    chunk_size: int = 1000,
+    overlap: int = 200,
+) -> list[str]:
+    """
+    Split text using LangChain RecursiveCharacterTextSplitter.
+    """
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=overlap,
+    )
+
+    chunks = text_splitter.split_text(text)
+
+    return chunks
