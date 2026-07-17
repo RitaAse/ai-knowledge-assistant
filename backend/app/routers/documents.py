@@ -9,12 +9,15 @@ from app.db.dependencies import get_db
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.schemas.document import DocumentCreate, DocumentResponse
+from app.schemas.search import SearchRequest
 from app.services.document_processor import (
     extract_text_from_pdf,
     chunk_text,
 )
 
 from app.services.embedding_service import generate_embedding
+
+from app.services.retrieval_service import retrieve_similar_chunks
 
 router = APIRouter(
     prefix="/documents",
@@ -114,4 +117,27 @@ def upload_document(
         db.commit()
         db.refresh(db_document)
 
+
     return db_document
+
+@router.post("/search")
+def search_documents(
+    request: SearchRequest,
+    db: Session = Depends(get_db),
+):
+    results = retrieve_similar_chunks(
+        question=request.question,
+        db=db,
+        limit=5,
+    )
+
+    return {
+        "results": [
+            {
+                "chunk_index": chunk.chunk_index,
+                "distance": distance,
+                "content": chunk.content,
+            }
+            for chunk, distance in results
+        ]
+    }

@@ -17,7 +17,12 @@ def retrieve_similar_chunks(
     question_embedding = generate_embedding(question)
 
     results = (
-        db.query(DocumentChunk)
+        db.query(
+            DocumentChunk,
+            DocumentChunk.embedding.cosine_distance(
+                question_embedding
+            ).label("distance"),
+        )
         .filter(
             DocumentChunk.embedding.isnot(None)
         )
