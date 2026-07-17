@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +28,11 @@ class DocumentChunk(Base):
     content: Mapped[str] = mapped_column(
         Text,
         nullable=False,
+    )
+
+    embedding: Mapped[list[float]] = mapped_column(
+        Vector(384),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
