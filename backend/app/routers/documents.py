@@ -14,6 +14,8 @@ from app.services.document_processor import (
     chunk_text,
 )
 
+from app.services.embedding_service import generate_embedding
+
 router = APIRouter(
     prefix="/documents",
     tags=["Documents"],
@@ -87,10 +89,13 @@ def upload_document(
         chunks = chunk_text(text)
 
         for index, chunk in enumerate(chunks):
+            embedding = generate_embedding(chunk)
+
             db_chunk = DocumentChunk(
                 document_id=db_document.id,
                 chunk_index=index,
                 content=chunk,
+                embedding=embedding,
             )
 
             db.add(db_chunk)
