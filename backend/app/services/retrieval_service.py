@@ -8,31 +8,49 @@ def retrieve_similar_chunks(
     question: str,
     db: Session,
     limit: int = 5,
+    include_distance: bool = False,
+    distance_threshold: float = 0.45,
 ):
     """
     Retrieve document chunks most similar
     to a user question.
+
+    Uses cosine distance:
+    - Lower distance = more similar
+    - Higher distance = less similar
     """
 
     question_embedding = generate_embedding(question)
 
-    results = (
+    distance = DocumentChunk.embedding.cosine_distance(
+        question_embedding
+    ).label("distance")
+
+    query = (
         db.query(
             DocumentChunk,
-            DocumentChunk.embedding.cosine_distance(
-                question_embedding
-            ).label("distance"),
+            distance,
         )
         .filter(
             DocumentChunk.embedding.isnot(None)
         )
-        .order_by(
-            DocumentChunk.embedding.cosine_distance(
-                question_embedding
-            )
-        )
+        .order_by(distance)
         .limit(limit)
-        .all()
     )
 
-    return results
+    results = query.all()
+
+    # Remove weak matches
+    filtered_results = [
+        row
+        for row in results
+        if row.distance <= distance_threshold
+    ]
+
+    if include_distance:
+        return filtered_results
+
+    return [
+        row.DocumentChunk
+        for row in filtered_results
+    ]

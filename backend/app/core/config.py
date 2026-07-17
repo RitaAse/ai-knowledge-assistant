@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "AI Knowledge Assistant API"
     api_version: str = "1.0.0"
     environment: str = "development"
+    groq_api_key: str
 
     database_url: str
 
