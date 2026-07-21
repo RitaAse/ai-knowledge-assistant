@@ -24,6 +24,7 @@ def document_status_tracker():
         del st.session_state[
             "uploaded_document_id"
         ]
+    
 
         return
 

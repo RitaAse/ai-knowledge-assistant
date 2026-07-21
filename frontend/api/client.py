@@ -82,3 +82,16 @@ def get_document(document_id: int):
     response.raise_for_status()
 
     return response.json()
+
+def search_documents(question: str):
+
+    response = requests.post(
+        f"{API_URL}/documents/search",
+        json={
+            "question": question,
+        },
+    )
+
+    response.raise_for_status()
+
+    return response.json()
