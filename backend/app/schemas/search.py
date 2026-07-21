@@ -8,6 +8,7 @@ class SourceResponse(BaseModel):
     document: str
     chunk_index: int
     distance: float
+    preview: str
 
 
 class RAGResponse(BaseModel):

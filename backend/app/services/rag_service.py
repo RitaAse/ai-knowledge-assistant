@@ -56,10 +56,11 @@ Answer:
             "document": row.DocumentChunk.document.filename,
             "chunk_index": row.DocumentChunk.chunk_index,
             "distance": float(row.distance),
+            "preview": row.DocumentChunk.content[:200],
         }
         for row in results
     ]
-
+    
     return {
         "answer": response.content,
         "sources": sources,

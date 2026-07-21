@@ -9,7 +9,7 @@ def retrieve_similar_chunks(
     db: Session,
     limit: int = 5,
     include_distance: bool = False,
-    distance_threshold: float = 0.45,
+    distance_threshold: float = 0.50,
 ):
     """
     Retrieve document chunks most similar
