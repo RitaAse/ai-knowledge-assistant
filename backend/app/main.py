@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
 from app.routers.documents import router as documents_router
+from app.routers.health import router as health_router
+
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.exception_handlers import app_exception_handler
@@ -26,6 +28,7 @@ def create_application() -> FastAPI:
     )
 
     application.include_router(documents_router)
+    application.include_router(health_router)
 
     return application
 

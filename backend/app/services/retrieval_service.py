@@ -22,7 +22,7 @@ def retrieve_similar_chunks(
 
     question_embedding = generate_embedding(question)
 
-    distance = DocumentChunk.embedding.cosine_distance(
+    distance = DocumentChunk.embgitedding.cosine_distance(
         question_embedding
     ).label("distance")
 

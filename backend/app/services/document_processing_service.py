@@ -1,3 +1,5 @@
+import structlog
+
 from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
@@ -12,6 +14,7 @@ from app.services.document_processor import (
 )
 from app.services.embedding_service import generate_embedding
 
+logger = structlog.get_logger()
 
 def process_document(
     document_id: int,
@@ -29,14 +32,22 @@ def process_document(
 
         if document is None:
             return
-        print("STARTING DOCUMENT PROCESSING")
+        logger.info(
+            "document_processing_started",
+            document_id=document.id,
+            filename=document.filename,
+        )
 
         document.processing_status = DocumentStatus.PROCESSING
         document.processing_started_at = datetime.now(UTC)
 
         db.commit()
 
-        print("STATUS CHANGED TO PROCESSING")
+        logger.info(
+            "document_status_updated",
+            document_id=document.id,
+            status="PROCESSING",
+        )
 
         text = extract_text_from_pdf(
             document.file_path
@@ -64,7 +75,11 @@ def process_document(
 
         db.commit()
 
-        print("DOCUMENT PROCESSING COMPLETED")
+        logger.info(
+            "document_processing_completed",
+            document_id=document.id,
+            filename=document.filename,
+        )
 
     except Exception as error:
 
@@ -73,7 +88,7 @@ def process_document(
         if document:
             document.processing_status = DocumentStatus.FAILED
             document.error_message = str(error)
-            
+
             db.commit()
 
     finally:
