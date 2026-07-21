@@ -1,25 +1,27 @@
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+)
+
+from app.services.document_processing_service import process_document
+
 from sqlalchemy.orm import Session
 
 from app.core.status import DocumentStatus
 from app.db.dependencies import get_db
 from app.models.document import Document
-from app.models.document_chunk import DocumentChunk
 from app.schemas.document import DocumentCreate, DocumentResponse
 from app.schemas.search import (
     SearchRequest,
     RAGResponse,
 )
-from app.services.document_processor import (
-    extract_text_from_pdf,
-    chunk_text,
-)
-
-from app.services.embedding_service import generate_embedding
-from app.services.retrieval_service import retrieve_similar_chunks
 from app.services.rag_service import generate_answer
 
 router = APIRouter(
@@ -28,24 +30,6 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "",
-    response_model=DocumentResponse,
-    status_code=201,
-)
-def create_document(
-    document: DocumentCreate,
-    db: Session = Depends(get_db),
-):
-    db_document = Document(
-        filename=document.filename,
-    )
-
-    db.add(db_document)
-    db.commit()
-    db.refresh(db_document)
-
-    return db_document
 
 @router.post(
     "/upload",
@@ -53,6 +37,7 @@ def create_document(
     status_code=201,
 )
 def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
@@ -82,47 +67,85 @@ def upload_document(
     db.commit()
     db.refresh(db_document)
 
-    db_document.processing_status = DocumentStatus.PROCESSING
 
-    db.commit()
-    db.refresh(db_document)
-
-    try:
-        text = extract_text_from_pdf(
-            db_document.file_path
-        )
-
-        chunks = chunk_text(text)
-
-        for index, chunk in enumerate(chunks):
-            embedding = generate_embedding(chunk)
-
-            db_chunk = DocumentChunk(
-                document_id=db_document.id,
-                chunk_index=index,
-                content=chunk,
-                embedding=embedding,
-            )
-
-            db.add(db_chunk)
-
-        db.commit()
-
-        db_document.processing_status = DocumentStatus.COMPLETED
-
-        db.commit()
-        db.refresh(db_document)
-
-    except Exception as error:
-        print(error)
-        db_document.processing_status = DocumentStatus.FAILED
-
-        db.commit()
-        db.refresh(db_document)
+    background_tasks.add_task(
+        process_document,
+        db_document.id,
+    )
 
 
     return db_document
 
+
+@router.get(
+    "",
+    response_model=list[DocumentResponse],
+)
+def get_documents(
+    db: Session = Depends(get_db),
+):
+    documents = (
+        db.query(Document)
+        .order_by(Document.created_at.desc())
+        .all()
+    )
+
+    return documents
+
+@router.get(
+    "/{document_id}",
+    response_model=DocumentResponse,
+)
+def get_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+):
+    document = (
+        db.query(Document)
+        .filter(Document.id == document_id)
+        .first()
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found.",
+        )
+
+    return document
+
+@router.delete(
+    "/{document_id}",
+)
+def delete_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+):
+    document = (
+        db.query(Document)
+        .filter(Document.id == document_id)
+        .first()
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found.",
+        )
+
+    # Delete PDF file from storage
+    file_path = Path(document.file_path)
+
+    if file_path.exists():
+        file_path.unlink()
+
+    # Delete database record
+    db.delete(document)
+    db.commit()
+
+    return {
+        "message": "Document deleted successfully."
+    }
 
 @router.post(
     "/search",
