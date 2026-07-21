@@ -188,7 +188,7 @@ cython_debug/
 #   option (not recommended) you can uncomment the following to ignore the entire idea folder.
 # .idea/
 
-# Abstra
+# Abstra framework
 #   Abstra is an AI-powered process automation framework.
 #   Ignore directories containing user credentials, local state, and settings.
 #   Learn more at https://abstra.io/docs
@@ -215,7 +215,16 @@ marimo/_lsp/
 __marimo__/
 
 # Streamlit
+.streamlit/
 .streamlit/secrets.toml
 
 # Users Uploads
 uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local databases
+*.db
+*.sqlite3
