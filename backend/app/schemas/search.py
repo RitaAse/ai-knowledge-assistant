@@ -6,8 +6,7 @@ class SearchRequest(BaseModel):
 
 class SourceResponse(BaseModel):
     document: str
-    chunk_index: int
-    distance: float
+    relevance: int
     preview: str
 
 

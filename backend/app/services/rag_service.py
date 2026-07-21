@@ -1,3 +1,6 @@
+import structlog
+logger = structlog.get_logger()
+
 from sqlalchemy.orm import Session
 
 from app.services.llm_service import get_llm
@@ -12,9 +15,17 @@ def generate_answer(
     results = retrieve_similar_chunks(
         question=question,
         db=db,
-        limit=5,
+        limit=8,
         include_distance=True,
     )
+
+    for row in results:
+        logger.info(
+            "retrieved_chunk",
+            document=row.DocumentChunk.document.filename,
+            distance=float(row.distance),
+        )
+
 
     if not results:
         return {
@@ -35,8 +46,17 @@ def generate_answer(
     prompt = f"""
 You are an AI assistant that answers questions using only the provided context.
 
-If the answer cannot be found in the context, say:
+Strict rules:
+1. Use only information explicitly present in the context.
+2. Do not assume the document refers to a company, person, or organization unless it is explicitly mentioned.
+3. If the user asks about a specific entity that is not mentioned in the context, clearly state that it was not found.
+4. You may provide related information from the context only if you clearly state that it is general information and not about the missing entity.
+5. Never invent missing details.
+
+If the answer cannot be found, say:
 "I could not find that information in the uploaded documents."
+
+Do not provide related information unless it directly answers the question.
 
 Context:
 {context}
@@ -51,17 +71,47 @@ Answer:
 
     response = llm.invoke(prompt)
 
-    sources = [
-        {
-            "document": row.DocumentChunk.document.filename,
-            "chunk_index": row.DocumentChunk.chunk_index,
-            "distance": float(row.distance),
-            "preview": row.DocumentChunk.content[:200],
-        }
-        for row in results
-    ]
-    
+    answer_text = response.content
+
+    sources = []
+
+    seen_documents = set()
+
+    for row in results:
+
+        document_name = (
+            row.DocumentChunk.document.filename
+        )
+
+        if document_name not in seen_documents:
+
+            sources.append(
+                {
+                    "document": document_name,
+                    "relevance": calculate_relevance(
+                        float(row.distance)
+                    ),
+                    "preview": row.DocumentChunk.content[:300],
+                }
+            )
+
+            seen_documents.add(document_name)
+
+
+        if len(sources) == 3:
+            break
+
+
+    if "I could not find that information" in answer_text:
+        sources = []
+
+
     return {
-        "answer": response.content,
+        "answer": answer_text,
         "sources": sources,
     }
+
+    
+def calculate_relevance(distance: float) -> int:
+    relevance = (1 - distance) * 100
+    return round(relevance)

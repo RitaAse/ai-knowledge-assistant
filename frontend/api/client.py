@@ -95,3 +95,13 @@ def search_documents(question: str):
     response.raise_for_status()
 
     return response.json()
+
+def download_document(document_id):
+
+    response = requests.get(
+        f"{API_URL}/documents/{document_id}/file"
+    )
+
+    response.raise_for_status()
+
+    return response.content

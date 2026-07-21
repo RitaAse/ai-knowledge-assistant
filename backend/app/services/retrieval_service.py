@@ -7,9 +7,9 @@ from app.services.embedding_service import generate_embedding
 def retrieve_similar_chunks(
     question: str,
     db: Session,
-    limit: int = 5,
+    limit: int = 8,
     include_distance: bool = False,
-    distance_threshold: float = 0.50,
+    distance_threshold: float = 0.55,
 ):
     """
     Retrieve document chunks most similar
@@ -22,7 +22,7 @@ def retrieve_similar_chunks(
 
     question_embedding = generate_embedding(question)
 
-    distance = DocumentChunk.embgitedding.cosine_distance(
+    distance = DocumentChunk.embedding.cosine_distance(
         question_embedding
     ).label("distance")
 

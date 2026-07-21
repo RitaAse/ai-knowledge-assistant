@@ -5,6 +5,7 @@ from streamlit_autorefresh import st_autorefresh
 from api.client import (
     get_documents,
     delete_document,
+    download_document,
 )
 
 
@@ -56,6 +57,18 @@ def document_list():
 
             st.success(
                 "Ready ✅"
+            )
+
+            pdf_file = download_document(
+                document["id"]
+            )
+
+
+            st.download_button(
+                label="📄 Open document",
+                data=pdf_file,
+                file_name=document["filename"],
+                mime="application/pdf",
             )
 
 

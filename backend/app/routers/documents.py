@@ -10,6 +10,8 @@ from fastapi import (
     UploadFile,
 )
 
+from fastapi.responses import FileResponse
+
 from app.services.document_processing_service import process_document
 
 from sqlalchemy.orm import Session
@@ -93,6 +95,42 @@ def get_documents(
     return documents
 
 @router.get(
+    "/{document_id}/file"
+)
+def get_document_file(
+    document_id: int,
+    db: Session = Depends(get_db),
+):
+
+    document = (
+        db.query(Document)
+        .filter(Document.id == document_id)
+        .first()
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Document not found.",
+        )
+
+
+    file_path = Path(document.file_path)
+
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="File not found.",
+        )
+
+
+    return FileResponse(
+        path=file_path,
+        filename=document.filename,
+        media_type=document.file_type,
+    )
+
+@router.get(
     "/{document_id}",
     response_model=DocumentResponse,
 )
@@ -162,3 +200,4 @@ def search_documents(
     )
 
     return answer
+

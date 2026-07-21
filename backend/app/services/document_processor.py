@@ -28,8 +28,8 @@ def extract_text_from_pdf(file_path: str) -> str:
 
 def chunk_text(
     text: str,
-    chunk_size: int = 600,
-    overlap: int = 100,
+    chunk_size: int = 1000,
+    overlap: int = 200,
 ) -> list[str]:
     """
     Split text using LangChain RecursiveCharacterTextSplitter.
@@ -37,7 +37,15 @@ def chunk_text(
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=overlap,
-    )
+            separators=[
+        "\n\n",
+        "\n",
+        ". ",
+        " ",
+        "",
+    ],
+)
+
 
     chunks = text_splitter.split_text(text)
 

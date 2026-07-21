@@ -11,18 +11,21 @@ st.title(
 )
 
 
-st.header("📤 Upload New Document")
+with st.sidebar:
 
-upload_section()
+    st.header("📚 Document Library")
 
-document_status_tracker()
+    st.subheader("📤 Upload Document")
 
-st.divider()
+    upload_section()
+
+    st.divider()
+
+    document_status_tracker()
+
+    st.divider()
+
+    document_list()
+
 
 chat_interface()
-
-st.divider()
-
-st.header("📚 Document Library")
-
-document_list()
