@@ -25,6 +25,7 @@ from app.schemas.search import (
 )
 from app.services.rag_service import generate_answer
 from app.services.storage_service import get_storage
+from app.services.storage.base import BaseStorage
 
 router = APIRouter(
     prefix="/documents",
@@ -59,8 +60,9 @@ def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    storage: BaseStorage = Depends(get_storage),
 ):
-    storage = get_storage()
+    
 
     unique_filename = f"{uuid4()}-{file.filename}"
 
