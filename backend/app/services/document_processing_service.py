@@ -1,4 +1,6 @@
 import structlog
+import tempfile
+from pathlib import Path
 
 from datetime import UTC, datetime
 
@@ -13,6 +15,7 @@ from app.services.document_processor import (
     chunk_text,
 )
 from app.services.embedding_service import generate_embedding
+from app.services.storage_service import get_storage
 
 logger = structlog.get_logger()
 
@@ -32,26 +35,53 @@ def process_document(
 
         if document is None:
             return
-        logger.info(
-            "document_processing_started",
-            document_id=document.id,
-            filename=document.filename,
-        )
+            logger.info(
+                "document_processing_started",
+                document_id=document.id,
+                filename=document.filename,
+            )
 
-        document.processing_status = DocumentStatus.PROCESSING
-        document.processing_started_at = datetime.now(UTC)
+            document.processing_status = DocumentStatus.PROCESSING
+            document.processing_started_at = datetime.now(UTC)
 
-        db.commit()
+            db.commit()
 
-        logger.info(
-            "document_status_updated",
-            document_id=document.id,
-            status="PROCESSING",
-        )
+            logger.info(
+                "document_status_updated",
+                document_id=document.id,
+                status="PROCESSING",
+            )
 
-        text = extract_text_from_pdf(
+        storage = get_storage()
+
+        file_bytes = storage.get_file(
             document.file_path
         )
+
+        if file_bytes is None:
+            raise FileNotFoundError(
+                "Document file could not be retrieved from storage."
+            )
+
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdf",
+            delete=False,
+        ) as temp_file:
+
+            temp_file.write(file_bytes)
+            temp_file_path = temp_file.name
+
+
+        try:
+            text = extract_text_from_pdf(
+                temp_file_path
+            )
+
+        finally:
+            Path(temp_file_path).unlink(
+                missing_ok=True
+            )
 
         chunks = chunk_text(text)
 
@@ -83,7 +113,10 @@ def process_document(
 
     except Exception as error:
 
-        print(error)
+        logger.exception(
+            "document_processing_failed",
+            document_id=document_id,
+        )
 
         if document:
             document.processing_status = DocumentStatus.FAILED

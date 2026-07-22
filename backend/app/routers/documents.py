@@ -1,4 +1,3 @@
-from pathlib import Path
 from uuid import uuid4
 
 from fastapi import (
@@ -10,7 +9,7 @@ from fastapi import (
     UploadFile,
 )
 
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 from app.services.document_processing_service import process_document
 
@@ -25,6 +24,7 @@ from app.schemas.search import (
     RAGResponse,
 )
 from app.services.rag_service import generate_answer
+from app.services.storage_service import get_storage
 
 router = APIRouter(
     prefix="/documents",
@@ -43,25 +43,22 @@ def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    upload_directory = Path("uploads/documents")
-
-    upload_directory.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    storage = get_storage()
 
     unique_filename = f"{uuid4()}-{file.filename}"
 
-    file_path = upload_directory / unique_filename
+    file_bytes = file.file.read()
 
-    with file_path.open("wb") as buffer:
-        buffer.write(file.file.read())
+    file_path = storage.upload_file(
+        file_bytes=file_bytes,
+        filename=unique_filename,
+    )
 
     db_document = Document(
         filename=file.filename,
-        file_path=str(file_path),
+        file_path=file_path,
         file_type=file.content_type,
-        file_size=file_path.stat().st_size,
+        file_size=len(file_bytes),
         processing_status=DocumentStatus.UPLOADED,
     )
 
@@ -115,19 +112,27 @@ def get_document_file(
         )
 
 
-    file_path = Path(document.file_path)
+    storage = get_storage()
 
-    if not file_path.exists():
+    file_bytes = storage.get_file(
+        document.file_path
+    )
+
+    if file_bytes is None:
         raise HTTPException(
             status_code=404,
             detail="File not found.",
         )
 
 
-    return FileResponse(
-        path=file_path,
-        filename=document.filename,
+    return Response(
+        content=file_bytes,
         media_type=document.file_type,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{document.filename}"'
+            )
+        },
     )
 
 @router.get(
@@ -172,10 +177,11 @@ def delete_document(
         )
 
     # Delete PDF file from storage
-    file_path = Path(document.file_path)
+    storage = get_storage()
 
-    if file_path.exists():
-        file_path.unlink()
+    storage.delete_file(
+        document.file_path
+    )
 
     # Delete database record
     db.delete(document)
