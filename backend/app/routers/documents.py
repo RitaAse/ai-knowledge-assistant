@@ -37,7 +37,24 @@ router = APIRouter(
     "/upload",
     response_model=DocumentResponse,
     status_code=201,
+    summary="Upload a document",
+    description=(
+        "Uploads a PDF document to the configured storage provider "
+        "and starts asynchronous document processing."
+    ),
+    responses={
+        201: {
+            "description": "Document uploaded successfully."
+        },
+        400: {
+            "description": "Invalid document or processing failed."
+        },
+        500: {
+            "description": "Unexpected server error."
+        },
+    },
 )
+
 def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -79,7 +96,21 @@ def upload_document(
 @router.get(
     "",
     response_model=list[DocumentResponse],
+    summary="List uploaded documents",
+    description=(
+        "Returns all uploaded documents ordered by creation date, "
+        "with their current processing status."
+    ),
+    responses={
+        200: {
+            "description": "Documents retrieved successfully."
+        },
+        500: {
+            "description": "Unexpected server error."
+        },
+    },
 )
+
 def get_documents(
     db: Session = Depends(get_db),
 ):
@@ -92,8 +123,24 @@ def get_documents(
     return documents
 
 @router.get(
-    "/{document_id}/file"
+    "/{document_id}/file",
+    summary="Download original document",
+    description=(
+        "Retrieves the uploaded document file from storage."
+    ),
+    responses={
+        200: {
+            "description": "File retrieved successfully."
+        },
+        404: {
+            "description": "Document or file not found."
+        },
+        500: {
+            "description": "Unexpected server error."
+        },
+    },
 )
+
 def get_document_file(
     document_id: int,
     db: Session = Depends(get_db),
@@ -138,7 +185,23 @@ def get_document_file(
 @router.get(
     "/{document_id}",
     response_model=DocumentResponse,
+    summary="Retrieve document details",
+    description=(
+        "Returns metadata and processing status for a specific document."
+    ),
+    responses={
+        200: {
+            "description": "Document retrieved successfully."
+        },
+        404: {
+            "description": "Document not found."
+        },
+        500: {
+            "description": "Unexpected server error."
+        },
+    },
 )
+
 def get_document(
     document_id: int,
     db: Session = Depends(get_db),
@@ -159,7 +222,24 @@ def get_document(
 
 @router.delete(
     "/{document_id}",
+    summary="Delete a document",
+    description=(
+        "Deletes a document record and removes the associated file "
+        "from the configured storage provider."
+    ),
+    responses={
+        200: {
+            "description": "Document deleted successfully."
+        },
+        404: {
+            "description": "Document not found."
+        },
+        500: {
+            "description": "Unexpected server error."
+        },
+    },
 )
+
 def delete_document(
     document_id: int,
     db: Session = Depends(get_db),
