@@ -11,7 +11,7 @@ from app.db.session import SessionLocal
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.services.document_processor import (
-    extract_text_from_pdf,
+    extract_pages_from_pdf,
     chunk_text,
 )
 from app.services.embedding_service import generate_embedding
@@ -35,22 +35,24 @@ def process_document(
 
         if document is None:
             return
-            logger.info(
-                "document_processing_started",
-                document_id=document.id,
-                filename=document.filename,
-            )
+        
+        
+        logger.info(
+            "document_processing_started",
+            document_id=document.id,
+            filename=document.filename,
+        )
 
-            document.processing_status = DocumentStatus.PROCESSING
-            document.processing_started_at = datetime.now(UTC)
+        document.processing_status = DocumentStatus.PROCESSING
+        document.processing_started_at = datetime.now(UTC)
 
-            db.commit()
+        db.commit()
 
-            logger.info(
-                "document_status_updated",
-                document_id=document.id,
-                status="PROCESSING",
-            )
+        logger.info(
+            "document_status_updated",
+            document_id=document.id,
+            status="PROCESSING",
+        )
 
         storage = get_storage()
 
@@ -74,7 +76,7 @@ def process_document(
 
 
         try:
-            text = extract_text_from_pdf(
+            pages = extract_pages_from_pdf(
                 temp_file_path
             )
 
@@ -83,18 +85,25 @@ def process_document(
                 missing_ok=True
             )
 
-        chunks = chunk_text(text)
+        chunks = chunk_text(
+            pages
+        )
 
         for index, chunk in enumerate(chunks):
 
-            embedding = generate_embedding(chunk)
+            embedding = generate_embedding(
+                chunk["content"]
+            )
 
             db_chunk = DocumentChunk(
                 document_id=document.id,
                 chunk_index=index,
-                content=chunk,
+                page_number=chunk["page_number"],
+                content=chunk["content"],
                 embedding=embedding,
             )
+
+            db.add(db_chunk)
 
             db.add(db_chunk)
 

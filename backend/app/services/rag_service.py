@@ -3,6 +3,7 @@ logger = structlog.get_logger()
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.services.llm_service import get_llm
 from app.services.retrieval_service import retrieve_similar_chunks
 
@@ -15,7 +16,7 @@ def generate_answer(
     results = retrieve_similar_chunks(
         question=question,
         db=db,
-        limit=8,
+        limit=settings.retrieval_top_k,
         include_distance=True,
     )
 
@@ -23,8 +24,17 @@ def generate_answer(
         logger.info(
             "retrieved_chunk",
             document=row.DocumentChunk.document.filename,
+            page=row.DocumentChunk.page_number,
+            chunk=row.DocumentChunk.chunk_index,
             distance=float(row.distance),
+            preview=row.DocumentChunk.content[:120],
         )
+
+    results = [
+        row
+        for row in results
+        if row.distance <= settings.similarity_threshold
+    ]
 
 
     if not results:
@@ -88,6 +98,7 @@ Answer:
             sources.append(
                 {
                     "document": document_name,
+                    "page": row.DocumentChunk.page_number,
                     "relevance": calculate_relevance(
                         float(row.distance)
                     ),

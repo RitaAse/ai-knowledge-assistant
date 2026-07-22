@@ -6,6 +6,7 @@ class SearchRequest(BaseModel):
 
 class SourceResponse(BaseModel):
     document: str
+    page: int | None
     relevance: int
     preview: str
 

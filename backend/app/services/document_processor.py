@@ -1,52 +1,74 @@
 import fitz
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
-def extract_text_from_pdf(file_path: str) -> str:
+def extract_pages_from_pdf(
+    file_path: str,
+) -> list[dict]:
     """
-    Extract text content from a PDF file.
-
-    Args:
-        file_path: Location of the PDF file.
-
-    Returns:
-        Extracted text from the document.
+    Extract text from PDF while preserving page numbers.
     """
 
     document = fitz.open(file_path)
 
-    extracted_text = []
+    pages = []
 
-    for page in document:
+    for page_number, page in enumerate(document, start=1):
+
         text = page.get_text()
 
-        extracted_text.append(text)
+        if text.strip():
+
+            pages.append(
+                {
+                    "page_number": page_number,
+                    "text": text,
+                }
+            )
 
     document.close()
 
-    return "\n".join(extracted_text)
+    return pages
+
+
 
 def chunk_text(
-    text: str,
+    pages: list[dict],
     chunk_size: int = 1000,
     overlap: int = 200,
-) -> list[str]:
+) -> list[dict]:
     """
-    Split text using LangChain RecursiveCharacterTextSplitter.
+    Split PDF text into chunks while preserving page metadata.
     """
+
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=overlap,
-            separators=[
-        "\n\n",
-        "\n",
-        ". ",
-        " ",
-        "",
-    ],
-)
+        separators=[
+            "\n\n",
+            "\n",
+            ". ",
+            " ",
+            "",
+        ],
+    )
 
+    chunks = []
 
-    chunks = text_splitter.split_text(text)
+    for page in pages:
+
+        page_chunks = text_splitter.split_text(
+            page["text"]
+        )
+
+        for chunk in page_chunks:
+
+            chunks.append(
+                {
+                    "content": chunk,
+                    "page_number": page["page_number"],
+                }
+            )
 
     return chunks

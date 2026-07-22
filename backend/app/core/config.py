@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     gcs_project_id: str | None = None
     google_application_credentials: str | None = None
 
+        # RAG configuration
+    retrieval_top_k: int = 5
+    similarity_threshold: float = 0.7
+
 
     model_config = SettingsConfigDict(
         env_file=".env",
