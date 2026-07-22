@@ -1,6 +1,10 @@
+keys/
 venv/
 __pycache__/
 *.pyc
 .env
 uploads/
 .git/
+.pytest_cache/
+*.log
+.DS_Store

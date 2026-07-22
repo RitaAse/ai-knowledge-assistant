@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import BinaryIO
 
 
 class BaseStorage(ABC):
@@ -28,12 +30,13 @@ class BaseStorage(ABC):
         pass
 
 
-    @abstractmethod
     def get_file(
         self,
         file_path: str,
-    ):
+    ) -> bytes | None:
         """
         Retrieve a stored file.
+
+        Returns file contents as bytes.
         """
         pass

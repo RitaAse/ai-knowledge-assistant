@@ -13,10 +13,12 @@ class Settings(BaseSettings):
     database_url: str
     groq_api_key: str
 
+    # Storage configuration
     storage_provider: str = "local"
 
     gcs_bucket_name: str | None = None
     gcs_project_id: str | None = None
+    google_application_credentials: str | None = None
 
 
     model_config = SettingsConfigDict(

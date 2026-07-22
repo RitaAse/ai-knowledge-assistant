@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from fastapi.responses import FileResponse
-
 from app.services.storage.base import BaseStorage
 
 
@@ -51,4 +49,4 @@ class LocalStorage(BaseStorage):
         if not path.exists():
             return None
 
-        return FileResponse(path)
+        return path
