@@ -49,7 +49,7 @@ class LocalStorage(BaseStorage):
         if not path.exists():
             return None
 
-        return path.read_bytes
+        return path.read_bytes()
     
     def health_check(self) -> bool:
         return self.upload_directory.exists()
