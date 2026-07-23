@@ -21,7 +21,8 @@ logger = structlog.get_logger()
 
 def process_document(
     document_id: int,
-):
+) -> None:
+    
     db: Session = SessionLocal()
 
     document = None
@@ -105,7 +106,6 @@ def process_document(
 
             db.add(db_chunk)
 
-            db.add(db_chunk)
 
         db.commit()
 
