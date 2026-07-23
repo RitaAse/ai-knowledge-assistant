@@ -274,6 +274,24 @@ def delete_document(
 @router.post(
     "/search",
     response_model=RAGResponse,
+    summary="Search uploaded documents",
+    description=(
+        "Answers a user's question using Retrieval-Augmented Generation (RAG). "
+        "The system retrieves the most relevant document chunks, sends them "
+        "to the language model, and returns an answer together with the "
+        "documents used as sources."
+    ),
+    responses={
+        200: {
+            "description": "Answer generated successfully."
+        },
+        400: {
+            "description": "Invalid search request."
+        },
+        500: {
+            "description": "Unexpected server error."
+        },
+    },
 )
 def search_documents(
     request: SearchRequest,
