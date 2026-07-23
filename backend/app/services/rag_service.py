@@ -79,9 +79,20 @@ Answer:
 
     llm = get_llm()
 
-    response = llm.invoke(prompt)
+    try:
+        response = llm.invoke(prompt)
+        answer_text = response.content
 
-    answer_text = response.content
+    except Exception:
+
+        logger.exception(
+            "llm_generation_failed"
+        )
+
+        return {
+            "answer": "I was unable to generate an answer at this time.",
+            "sources": [],
+        }
 
     sources = []
 

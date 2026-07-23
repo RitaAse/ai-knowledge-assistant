@@ -3,13 +3,14 @@ from sqlalchemy.orm import Session
 from app.models.document_chunk import DocumentChunk
 from app.services.embedding_service import generate_embedding
 
+from app.core.config import settings
+
 
 def retrieve_similar_chunks(
     question: str,
     db: Session,
     limit: int = 8,
     include_distance: bool = False,
-    distance_threshold: float = 0.55,
 ):
     """
     Retrieve document chunks most similar
@@ -44,7 +45,7 @@ def retrieve_similar_chunks(
     filtered_results = [
         row
         for row in results
-        if row.distance <= distance_threshold
+        if row.distance <= settings.similarity_threshold
     ]
 
     if include_distance:
