@@ -42,11 +42,14 @@ class LocalStorage(BaseStorage):
     def get_file(
         self,
         file_path: str,
-    ):
+    ) -> bytes | None:
 
         path = Path(file_path)
 
         if not path.exists():
             return None
 
-        return path
+        return path.read_bytes
+    
+    def health_check(self) -> bool:
+        return self.upload_directory.exists()

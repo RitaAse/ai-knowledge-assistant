@@ -18,7 +18,6 @@ class BaseStorage(ABC):
         """
         pass
 
-
     @abstractmethod
     def delete_file(
         self,
@@ -29,7 +28,7 @@ class BaseStorage(ABC):
         """
         pass
 
-
+    @abstractmethod
     def get_file(
         self,
         file_path: str,
@@ -38,5 +37,12 @@ class BaseStorage(ABC):
         Retrieve a stored file.
 
         Returns file contents as bytes.
+        """
+        pass
+
+    @abstractmethod
+    def health_check(self) -> bool:
+        """
+        Check if storage provider is available.
         """
         pass

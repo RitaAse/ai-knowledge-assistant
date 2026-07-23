@@ -64,3 +64,12 @@ class GCSStorage(BaseStorage):
             return None
 
         return blob.download_as_bytes()
+
+
+    def health_check(self) -> bool:
+        try:
+            self.bucket.reload()
+            return True
+
+        except Exception:
+            return False
