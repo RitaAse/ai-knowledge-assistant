@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     # Storage configuration
     storage_provider: str = "local"
+    upload_directory: str = "uploads/documents"
 
     gcs_bucket_name: str | None = None
     gcs_project_id: str | None = None

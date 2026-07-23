@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from app.services.storage.base import BaseStorage
-
+from app.core.config import settings
 
 class LocalStorage(BaseStorage):
 
     def __init__(
         self,
-        upload_directory: str = "uploads/documents",
+        upload_directory: str = settings.upload_directory,
     ):
         self.upload_directory = Path(upload_directory)
 
