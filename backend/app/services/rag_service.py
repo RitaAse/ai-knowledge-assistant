@@ -20,13 +20,14 @@ def generate_answer(
         include_distance=True,
     )
 
-    logger.info(
-        "retrieved_chunk",
-        document=getattr(
-            row.DocumentChunk.document,
-            "filename",
-            None,
-        ),
+    for row in results:
+        logger.info(
+            "retrieved_chunk",
+            document=getattr(
+                row.DocumentChunk.document,
+                "filename",
+                None,
+            ),
             page=row.DocumentChunk.page_number,
             chunk=row.DocumentChunk.chunk_index,
             distance=float(row.distance),
