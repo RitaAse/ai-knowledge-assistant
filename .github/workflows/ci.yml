@@ -54,7 +54,7 @@ jobs:
       - name: Run tests
         working-directory: backend
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_assistant_test
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/ai_assistant_test
           GROQ_API_KEY: test_key
 
         run: |
