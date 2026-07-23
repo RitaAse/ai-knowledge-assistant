@@ -32,3 +32,6 @@ class FakeStorage(BaseStorage):
 
         if file_path in self.files:
             del self.files[file_path]
+
+    def health_check(self) -> bool:
+        return True
