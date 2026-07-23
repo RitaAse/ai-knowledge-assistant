@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.core.status import DocumentStatus
 from app.db.dependencies import get_db
 from app.models.document import Document
-from app.schemas.document import DocumentCreate, DocumentResponse
+from app.schemas.document import DocumentResponse
 from app.schemas.search import (
     SearchRequest,
     RAGResponse,
@@ -146,6 +146,7 @@ def get_documents(
 def get_document_file(
     document_id: int,
     db: Session = Depends(get_db),
+    storage: BaseStorage = Depends(get_storage),
 ):
 
     document = (
@@ -159,9 +160,6 @@ def get_document_file(
             status_code=404,
             detail="Document not found.",
         )
-
-
-    storage = get_storage()
 
     file_bytes = storage.get_file(
         document.file_path
@@ -245,6 +243,7 @@ def get_document(
 def delete_document(
     document_id: int,
     db: Session = Depends(get_db),
+    storage: BaseStorage = Depends(get_storage),
 ):
     document = (
         db.query(Document)
@@ -258,8 +257,7 @@ def delete_document(
             detail="Document not found.",
         )
 
-    # Delete PDF file from storage
-    storage = get_storage()
+
 
     storage.delete_file(
         document.file_path
@@ -279,7 +277,6 @@ def delete_document(
 )
 def search_documents(
     request: SearchRequest,
-    
     db: Session = Depends(get_db),
 ):
     answer = generate_answer(
