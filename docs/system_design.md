@@ -35,7 +35,7 @@ The goal of this system is to provide:
 
 ## Document Management
 
-The system should allow users to:
+The system allow users to:
 
 - Upload PDF documents
 - Store documents securely
@@ -47,23 +47,23 @@ The system should allow users to:
 
 ## Document Processing
 
-The system should:
+The system:
 
-- Extract text from uploaded documents
-- Split text into smaller chunks
-- Generate embeddings
-- Store processed chunks
+- Extracts text from uploaded documents
+- Splits text into smaller chunks
+- Generates embeddings
+- Stores processed chunks
 
 ---
 
 ## Question Answering
 
-The system should:
+The system support:
 
-- Accept natural language questions
-- Retrieve relevant document sections
-- Generate answers using retrieved context
-- Return source information
+- Accepts natural language questions
+- Retrieves relevant document sections
+- Generates answers using retrieved context
+- Returns source information
 
 ---
 
@@ -71,17 +71,17 @@ The system should:
 
 ## Reliability
 
-The system should:
+The system:
 
-- Handle processing failures gracefully
-- Track document processing states
-- Provide meaningful error responses
+- Handles processing failures gracefully
+- Tracks document processing states
+- Provides meaningful error responses
 
 ---
 
 ## Scalability
 
-The architecture should support:
+The architecture supports:
 
 - Increasing document volume
 - More users
@@ -526,9 +526,19 @@ Streamlit Interface
 
 to provide a scalable AI-powered document assistant.
 
-The architecture prioritizes:
+The architecture demonstrates:
 
-- Modularity
-- Reliability
-- Grounded AI responses
-- Future scalability
+- End-to-end AI application development
+- Backend engineering
+- Retrieval-Augmented Generation
+- Vector database integration
+- Cloud deployment
+- Production-oriented design decisions
+
+Future evolution includes:
+
+- Authentication
+- Multi-user support
+- Distributed processing
+- Advanced monitoring
+- Automated RAG evaluation

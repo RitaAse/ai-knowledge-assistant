@@ -2,20 +2,27 @@
 
 ## 1. Overview
 
-The AI Knowledge Assistant is a Retrieval-Augmented Generation (RAG) application that enables users to upload documents and ask questions using natural language.
+The AI Knowledge Assistant is a Retrieval-Augmented Generation (RAG) application that enables users to upload documents and ask natural language questions.
 
-The system processes uploaded documents, extracts text, creates vector embeddings, stores document information, retrieves relevant content, and generates grounded answers using a Large Language Model (LLM).
+The system processes uploaded documents, extracts relevant information, generates vector embeddings, performs semantic retrieval, and produces grounded answers using a Large Language Model (LLM).
 
-The application is designed with a modular backend architecture that separates API handling, business logic, storage management, document processing, retrieval, and AI generation components.
+The architecture is designed around:
 
-The architecture supports:
-
-- Document upload and management
+- Modular backend services
+- Separation of responsibilities
+- Storage abstraction
 - Asynchronous document processing
-- Semantic search using vector embeddings
-- Context-aware answer generation
-- Multiple storage providers
-- Future production scaling
+- Vector-based semantic retrieval
+- Future cloud scalability
+
+The system currently supports:
+
+- PDF document ingestion
+- Background processing
+- Semantic search
+- AI-generated answers with source references
+- Local and cloud storage abstraction
+- Streamlit-based user interface
 
 ---
 
@@ -26,453 +33,617 @@ flowchart TD
 
     User[User]
 
-    User --> API[FastAPI Backend]
+    User --> Frontend[Streamlit Frontend]
 
-    API --> Upload[Document Upload API]
-    API --> Search[Question Search API]
+    Frontend --> Backend[FastAPI Backend]
 
-    Upload --> Storage[Storage Layer]
+    Backend --> API[API Layer]
+
+    API --> DocumentRoutes[Document Management]
+
+    API --> SearchRoutes[RAG Question Answering]
+
+
+    DocumentRoutes --> Storage[Storage Layer]
 
     Storage --> Local[Local Storage]
+
     Storage --> GCS[Google Cloud Storage]
 
-    Upload --> Processor[Background Document Processing]
 
-    Processor --> PDF[PDF Text Extraction]
-    PDF --> Chunking[Text Chunking]
-    Chunking --> Embedding[Embedding Generation]
+    DocumentRoutes --> Processing[Document Processing Service]
 
-    Embedding --> Database[(PostgreSQL + pgvector)]
+    Processing --> Extraction[PDF Text Extraction]
 
-    Search --> Retrieval[Similarity Retrieval]
+    Extraction --> Chunking[Text Chunking]
+
+    Chunking --> Embeddings[Embedding Generation]
+
+    Embeddings --> Database[(PostgreSQL + pgvector)]
+
+
+    SearchRoutes --> Retrieval[Similarity Retrieval]
 
     Retrieval --> Database
 
-    Retrieval --> LLM[LLM Generation]
+    Retrieval --> Context[Retrieved Context]
+
+    Context --> LLM[LLM Generation]
 
     LLM --> Response[Answer + Sources]
 ```
 
 ---
 
-# 3. System Components
+# 3. Application Components
 
-## 3.1 FastAPI Backend
-
-The FastAPI application provides the main interface between users and the AI Knowledge Assistant system.
-
-### Responsibilities
-
-- Handle API requests
-- Validate incoming data
-- Manage document operations
-- Trigger background processing
-- Coordinate retrieval and answer generation
-- Return structured responses
-
-The backend follows a layered architecture:
+The system is divided into several layers:
 
 ```text
-API Layer
-    |
-Service Layer
-    |
-Data Access Layer
-    |
-Database / External Services
+                 Streamlit Frontend
+
+                         |
+
+                         |
+
+                  FastAPI Backend
+
+                         |
+
+        +----------------+----------------+
+
+        |                                 |
+
+   API Layer                       Service Layer
+
+                                         |
+
+                              +----------+----------+
+
+                              |                     |
+
+                       Storage Layer          Database Layer
+
+                              |
+
+                         External AI Services
 ```
 
----
-
-# 4. API Layer
-
-The API layer contains the application routes responsible for handling client requests.
-
-### Current Document Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/documents/upload` | Upload a PDF document |
-| GET | `/documents` | Retrieve all uploaded documents |
-| GET | `/documents/{document_id}` | Retrieve document metadata |
-| GET | `/documents/{document_id}/file` | Download original document |
-| DELETE | `/documents/{document_id}` | Delete document and stored file |
-| POST | `/documents/search` | Ask questions over uploaded documents |
-
-The API layer does not contain business logic. Instead, it delegates processing to dedicated services.
+Each layer has a specific responsibility.
 
 ---
 
-# 5. Storage Architecture
+# 4. Frontend Layer
 
-The application uses a storage abstraction layer to separate file management from business logic.
+## Technology
 
-The storage interface defines common operations:
+- Streamlit
 
-- Upload file
-- Retrieve file
-- Delete file
-- Check storage availability
+## Responsibilities
 
-This allows different storage providers to be used without modifying the document processing workflow.
+The frontend provides:
 
-### Current Implementations
+- Document upload interface
+- Document library
+- Processing status display
+- Question-answer interface
+- Source evidence display
+
+The frontend communicates with the backend through HTTP requests.
+
+Architecture:
 
 ```text
-BaseStorage
-     |
-     +----------------+
-     |                |
-LocalStorage     GCSStorage
+Streamlit UI
+
+      |
+
+HTTP Requests
+
+      |
+
+FastAPI API
 ```
 
+The frontend does not contain business logic.
+
+Its responsibility is:
+
+- Collect user input
+- Display application state
+- Present AI responses
+
 ---
 
-## 5.1 Local Storage
+# 5. Backend API Layer
 
-Local storage is used during development.
+## Technology
 
-### Responsibilities
+- FastAPI
 
-- Store uploaded documents locally
-- Retrieve document bytes
-- Delete stored files
-- Verify storage availability
+The API layer acts as the entry point into the system.
 
-### Example Use Case
+## Responsibilities
+
+The API layer handles:
+
+- HTTP request processing
+- Input validation
+- Response formatting
+- Endpoint routing
+- Dependency management
+
+Available endpoints:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/documents/upload` | Upload documents |
+| GET | `/documents` | Retrieve documents |
+| GET | `/documents/{id}` | Retrieve document metadata |
+| GET | `/documents/{id}/file` | Download original file |
+| DELETE | `/documents/{id}` | Delete document |
+| POST | `/documents/search` | Ask questions using RAG |
+
+The API layer does not contain processing logic.
+
+Business operations are delegated to services.
+
+---
+
+# 6. Service Layer
+
+The service layer contains the main application logic.
+
+Current services include:
+
+---
+
+## 6.1 Document Processing Service
+
+Responsible for transforming uploaded files into searchable knowledge.
+
+Workflow:
 
 ```text
-Developer Environment
+PDF File
+
+ |
+
+Text Extraction
+
+ |
+
+Chunk Creation
+
+ |
+
+Embedding Generation
+
+ |
+
+Vector Storage
+```
+
+Responsibilities:
+
+- Retrieve uploaded files
+- Extract PDF content
+- Split documents into chunks
+- Generate embeddings
+- Store document chunks
+- Update processing status
+
+---
+
+## 6.2 Retrieval Service
+
+Responsible for finding relevant information.
+
+Workflow:
+
+```text
+User Question
+
+ |
+
+Question Embedding
+
+ |
+
+Vector Similarity Search
+
+ |
+
+Relevant Chunks
+```
+
+Responsibilities:
+
+- Generate query embeddings
+- Search document vectors
+- Rank relevant chunks
+- Apply similarity filtering
+
+---
+
+## 6.3 RAG Service
+
+Responsible for generating grounded answers.
+
+Workflow:
+
+```text
+Retrieved Context
+
++
+
+User Question
+
         |
+
         v
-Local File System
+
+LLM Prompt
+
         |
+
         v
-uploads/documents/
+
+Generated Answer
 ```
+
+Responsibilities:
+
+- Construct prompts
+- Send context to LLM
+- Generate responses
+- Attach source references
 
 ---
 
-## 5.2 Google Cloud Storage
+# 7. Storage Architecture
 
-Google Cloud Storage is supported as a cloud storage option for future production deployment.
+The application uses a storage abstraction layer.
 
-### Responsibilities
+The purpose is to separate file management from application logic.
 
-- Store uploaded documents in cloud buckets
-- Retrieve files when required
-- Delete documents
-- Validate bucket connectivity
-
-The storage abstraction allows migration from local storage to cloud storage without changing the application logic.
+Architecture:
 
 ```text
-Application
-     |
-     v
-Storage Interface
-     |
-     +------------+
-     |            |
- Local        Google Cloud
-Storage       Storage
+              BaseStorage
+
+                   |
+
+        +----------+----------+
+
+        |                     |
+
+ LocalStorage            GCSStorage
 ```
+
 ---
 
-# 6. Document Processing Pipeline
+## 7.1 Local Storage
 
-Document processing is executed asynchronously after a document upload.
+Used during:
 
-This prevents long-running operations such as PDF extraction and embedding generation from blocking the upload request.
+- Local development
+- Portfolio demonstration
 
-## Processing Workflow
+Responsibilities:
+
+- Save uploaded files
+- Retrieve files
+- Delete files
+
+Example:
+
+```text
+uploads/
+
+   documents/
+
+        example.pdf
+```
+
+---
+
+## 7.2 Google Cloud Storage
+
+Supported as a production storage provider.
+
+Benefits:
+
+- Persistent storage
+- Scalable capacity
+- Cloud deployment compatibility
+
+The application can switch storage providers without changing business logic.
+
+---
+
+# 8. Document Processing Pipeline
+
+Document processing occurs asynchronously after upload.
+
+The upload request returns immediately while processing continues in the background.
+
+Workflow:
 
 ```mermaid
 flowchart TD
 
-    Upload[Document Upload]
+Upload[Upload PDF]
 
-    Upload --> Storage[Store File]
+Upload --> Save[Store File]
 
-    Storage --> Background[Background Processing]
+Save --> Metadata[Create Document Record]
 
-    Background --> Extract[Extract PDF Text]
+Metadata --> Background[Background Processing]
 
-    Extract --> Chunk[Split Text Into Chunks]
+Background --> Extract[Extract Text]
 
-    Chunk --> Embed[Generate Embeddings]
+Extract --> Chunk[Create Chunks]
 
-    Embed --> Store[(PostgreSQL + pgvector)]
+Chunk --> Embed[Generate Embeddings]
 
-    Store --> Complete[Processing Completed]
+Embed --> Store[(PostgreSQL + pgvector)]
+
+Store --> Complete[Processing Complete]
 ```
 
-The document processing service performs the following steps:
+---
 
-- Retrieve the uploaded document from storage
-- Create a temporary PDF file for processing
-- Extract text from PDF pages
-- Split extracted text into smaller chunks
-- Generate embeddings for each chunk
-- Store document chunks and embeddings in PostgreSQL
-- Update document processing status
+## Processing States
 
-### Processing States
+Documents follow this lifecycle:
 
 ```text
 UPLOADED
+
     |
+
     v
+
 PROCESSING
+
     |
+
     v
+
 COMPLETED
 ```
 
-If processing fails:
+Failed processing:
 
 ```text
 PROCESSING
+
     |
+
     v
+
 FAILED
 ```
 
 ---
 
-# 7. Database Architecture
+# 9. Database Architecture
 
-The application uses PostgreSQL as the primary database with pgvector support for storing and searching document embeddings.
+The application uses:
 
-## Database Relationship
+- PostgreSQL
+- pgvector extension
 
-```mermaid
-erDiagram
+The database stores:
 
-    DOCUMENT ||--o{ DOCUMENT_CHUNK : contains
+- Document metadata
+- Processing states
+- Extracted chunks
+- Embeddings
 
-    DOCUMENT {
-        int id
-        string filename
-        string file_path
-        string file_type
-        int file_size
-        string processing_status
-        datetime created_at
-    }
-
-    DOCUMENT_CHUNK {
-        int id
-        int document_id
-        int chunk_index
-        int page_number
-        text content
-        vector embedding
-    }
-```
-
-
-## Main Database Entities
-
-### 7.1 Document Table
-
-The **Document** table stores uploaded document metadata.
-
-Stored information includes:
-
-- Original filename
-- Storage location
-- File type
-- File size
-- Processing status
-- Creation timestamp
-- Processing timestamps
-- Error information when processing fails
-
-### Example Lifecycle
+Relationship:
 
 ```text
-Document uploaded
-        |
-        v
-Status: UPLOADED
-        |
-        v
-Background processing starts
-        |
-        v
-Status: PROCESSING
-        |
-        v
-Status: COMPLETED / FAILED
+Document
+
+    |
+
+    +---- DocumentChunk
+
+    +---- DocumentChunk
+
+    +---- DocumentChunk
 ```
 
----
-
-### 7.2 Document Chunk Table
-
-The **DocumentChunk** table stores processed sections of documents.
-
-Each chunk contains:
-
-- Extracted text content
-- Page number
-- Chunk position
-- Vector embedding
-
-Embeddings allow semantic similarity search instead of traditional keyword matching.
+A single document can contain multiple searchable chunks.
 
 ---
 
-# 8. Retrieval-Augmented Generation (RAG) Architecture
+# 10. Retrieval-Augmented Generation Architecture
 
-The question-answering workflow combines vector search with LLM generation.
+The RAG pipeline combines semantic retrieval with LLM generation.
 
-## RAG Workflow
+Workflow:
 
 ```mermaid
 flowchart TD
 
-    Question[User Question]
+Question[User Question]
 
-    Question --> Embedding[Generate Question Embedding]
+Question --> QueryEmbedding[Generate Embedding]
 
-    Embedding --> Search[Similarity Search]
+QueryEmbedding --> Search[Vector Search]
 
-    Search --> Chunks[Retrieve Relevant Document Chunks]
+Search --> Chunks[Retrieve Relevant Chunks]
 
-    Chunks --> Context[Build Context]
+Chunks --> Context[Build Context]
 
-    Context --> LLM[Large Language Model]
+Context --> LLM[Generate Answer]
 
-    LLM --> Answer[Generated Answer + Sources]
+LLM --> Response[Answer + Sources]
 ```
 
-
-## 8.1 Retrieval Process
-
-When a user asks a question:
-
-1. The question is converted into an embedding vector.
-2. The system searches stored document embeddings.
-3. The most similar chunks are retrieved.
-4. Weak matches are removed using similarity thresholds.
-5. Relevant context is passed to the LLM.
-
-The retrieval system uses cosine distance:
-
-- Lower distance = more similar
-- Higher distance = less similar
-
 ---
 
-## 8.2 Answer Generation
-
-The LLM receives:
-
-- User question
-- Retrieved document context
-
-The generation process follows strict grounding rules:
-
-- Use only information from retrieved documents.
-- Avoid hallucinating missing information.
-- Clearly state when information is unavailable.
-- Return source references when available.
-
----
-
-# 9. Technology Stack
-
-## Backend
-
-- Python
-- FastAPI
-- SQLAlchemy
-- Pydantic Settings
-- Uvicorn
-
-## Database
-
-- PostgreSQL
-- pgvector extension for vector storage and similarity search
-
-## AI Components
-
-- Sentence Transformers (`all-MiniLM-L6-v2`) for document embeddings
-- Groq LLM API for answer generation
-
-## Infrastructure
-
-- Docker
-- Docker Compose
-
-## Testing
-
-- Pytest
-- FastAPI TestClient
-
----
-
-# 10. Design Principles
+# 11. Design Principles
 
 ## Separation of Responsibilities
 
-The application separates concerns into dedicated layers:
+Each component has a clear role:
 
-- Routers handle HTTP requests.
-- Services contain business logic.
-- Storage manages file persistence.
-- Database models represent stored data.
-- AI services handle embeddings and generation.
-
-This improves maintainability and testing.
+| Component | Responsibility |
+|---|---|
+| Router | HTTP communication |
+| Service | Business logic |
+| Storage | File persistence |
+| Database | Structured data storage |
+| AI Services | Embeddings and generation |
 
 ---
 
 ## Storage Abstraction
 
-Storage providers are isolated behind a common interface.
+The system avoids coupling application logic to one storage provider.
 
-### Benefits
+Benefits:
 
-- Easy migration between storage providers.
-- Reduced coupling.
-- Easier testing with fake storage implementations.
-
----
-
-## Asynchronous Processing
-
-Document processing runs in the background after upload.
-
-### Benefits
-
-- Faster API responses.
-- Better user experience.
-- Support for larger documents in future versions.
+- Easier migration
+- Improved testing
+- Cleaner architecture
 
 ---
 
 ## Grounded AI Responses
 
-The system prioritizes accuracy by restricting responses to retrieved document information.
+The system prioritizes reliable answers.
 
-This reduces hallucination risk and improves reliability.
+The LLM receives only retrieved document context.
+
+This reduces:
+
+- Hallucination risk
+- Unsupported responses
+- Incorrect information generation
+
+---
+
+## Asynchronous Processing
+
+Long-running tasks are separated from API requests.
+
+Benefits:
+
+- Faster uploads
+- Better user experience
+- Future scalability
 
 ---
 
-# 11. Future Improvements
+# 12. Current Deployment Architecture
 
-Potential future enhancements:
+Current portfolio deployment:
 
-- Authentication and authorization
-- User-specific document permissions
-- Background task queue using Celery or similar tools
-- Improved document processing for additional formats
-- Automated RAG evaluation metrics
-- Monitoring and logging dashboards
-- Cloud deployment with container orchestration
-- Advanced vector database options
+```text
+                    User
+
+                     |
+
+                     |
+
+              Streamlit Cloud
+
+                     |
+
+                     |
+
+               FastAPI Backend
+
+                     |
+
+          +----------+----------+
+
+          |                     |
+
+      Render API          PostgreSQL
+
+                             
+
+                     |
+
+              Document Storage
+```
 
 ---
+
+# 13. Future Scalability Improvements
+
+Future production improvements include:
+
+## Background Workers
+
+Replace FastAPI background tasks with:
+
+- Celery
+- Redis Queue
+- Cloud Tasks
+
+---
+
+## Authentication
+
+Introduce:
+
+- User accounts
+- Document ownership
+- Permissions
+- Multi-user isolation
+
+---
+
+## Cloud Storage
+
+Move from local storage to:
+
+- Google Cloud Storage
+- Amazon S3
+- Azure Blob Storage
+
+---
+
+## Monitoring
+
+Add:
+
+- Application metrics
+- Error tracking
+- AI evaluation metrics
+- Logging dashboards
+
+---
+
+# 14. Summary
+
+The AI Knowledge Assistant architecture combines:
+
+```text
+FastAPI
++
+Streamlit
++
+PostgreSQL + pgvector
++
+Sentence Transformers
++
+LLM Generation
+```
+
+to create a modular RAG-based document intelligence system.
+
+The architecture prioritizes:
+
+- Maintainability
+- Reliability
+- Explainability
+- Cloud readiness
+- Future scalability

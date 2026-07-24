@@ -1,63 +1,172 @@
-# AI Knowledge Assistant
+# AI Knowledge Assistant - End-to-End RAG Application
 
-## A Production-Ready RAG-Based Document Question Answering System
+> A production-ready Retrieval-Augmented Generation (RAG) application for intelligent document question answering using semantic search, vector embeddings, and Large Language Models.
 
-The AI Knowledge Assistant is a Retrieval-Augmented Generation (RAG) application that allows users to upload documents and ask natural language questions.
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791)
+![RAG](https://img.shields.io/badge/AI-RAG-purple)
+![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-FF4B4B)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![License](https://img.shields.io/badge/License-Portfolio-lightgrey)
+
+---
+
+# Table of Contents
+
+- [Project Overview](#project-overview)
+- [Live Demo](#live-demo)
+- [System Architecture](#system-architecture)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [Application Architecture](#application-architecture)
+- [Repository Structure](#repository-structure)
+- [Local Development Setup](#local-development-setup)
+- [API Endpoints](#api-endpoints)
+- [Testing](#testing)
+- [Database Migrations](#database-migrations)
+- [Deployment Architecture](#deployment-architecture)
+- [Current Production Limitations](#current-production-limitations)
+- [Future Improvements](#future-improvements)
+- [Project Status](#project-status)
+- [License](#license)
+
+---
+
+# Project Overview
+
+The **AI Knowledge Assistant** is a Retrieval-Augmented Generation (RAG) application that transforms unstructured documents into an intelligent, searchable knowledge base.
+
+Users can upload PDF documents, ask natural language questions, and receive AI-generated answers grounded in the uploaded content.
+
+Unlike traditional keyword search, the application performs **semantic retrieval**, enabling it to understand the meaning behind a user's question before generating an answer.
 
 The system combines:
 
 - Document processing
 - Semantic search
 - Vector embeddings
-- Retrieval-Augmented Generation
+- Retrieval-Augmented Generation (RAG)
 - Large Language Models (LLMs)
+- Cloud deployment architecture
 
-to generate accurate answers grounded in uploaded documents.
-
-The goal of this project is to build an intelligent knowledge retrieval system that helps users quickly access information from internal documentation such as:
+Typical use cases include:
 
 - Company policies
-- Technical manuals
-- Onboarding documents
-- Internal guidelines
+- Technical documentation
 - Knowledge bases
+- Internal guidelines
+- Employee onboarding documents
+- Training materials
 
 ---
 
-# Project Overview
+# Screenshots
 
-Traditional document search relies on keyword matching, making it difficult to find relevant information when users do not know the exact wording.
+## Home Page
 
-This project solves this problem by using semantic search.
+![Home](docs/images/home.png)
 
-Instead of searching for exact keywords, the system understands the meaning behind a question and retrieves the most relevant document sections before generating an answer.
+## Upload Documents
 
-Example:
+![Upload](docs/images/upload.png)
 
+## Ask Questions
+
+![Search](docs/images/search.png)
+
+---
+
+# Demo GIF
+A short 20–30 second GIF showing:
+
+Upload a PDF
+Wait for processing
+Ask a question
+Receive an answer with sources
+
+# Live Demo
+
+## Frontend
+
+Streamlit application:
+
+```text
+<YOUR_STREAMLIT_URL>
 ```
-User Question:
+
+## Backend API
+
+FastAPI backend:
+
+```text
+<YOUR_RENDER_BACKEND_URL>
+```
+
+Interactive Swagger documentation:
+
+```text
+<YOUR_RENDER_BACKEND_URL>/docs
+```
+
+---
+
+# How It Works
+
+Instead of searching for exact keywords, the system retrieves document sections that are **semantically similar** to the user's question before asking the language model to generate a response.
+
+```text
+User Question
 
 "What operating system is recommended?"
 
-        |
+        │
 
 Question Embedding
 
-        |
+        │
 
 Vector Similarity Search
 
-        |
+        │
 
 Relevant Document Chunks
 
-        |
+        │
 
 LLM Answer Generation
 
-        |
+        │
 
-Answer + Sources
+Answer + Source References
+```
+
+This retrieval-first approach helps reduce hallucinations by grounding responses in the uploaded documents.
+
+---
+
+# System Architecture
+
+The application follows a separated frontend/backend architecture deployed in the cloud.
+
+```mermaid
+flowchart TD
+
+    User[User]
+
+    User --> Frontend[Streamlit Community Cloud]
+
+    Frontend --> Backend[FastAPI Backend - Render]
+
+    Backend --> Database[(PostgreSQL + pgvector)]
+
+    Backend --> Storage[Google Cloud Storage]
+
+    Backend --> Retrieval[Semantic Retrieval]
+
+    Retrieval --> LLM[Groq LLM]
+
+    LLM --> Response[Answer + Sources]
 ```
 
 ---
@@ -69,61 +178,80 @@ Answer + Sources
 Users can:
 
 - Upload PDF documents
-- Store documents using configurable storage providers
-- Retrieve uploaded files
-- Delete documents
-- Track document processing status
+- View document processing status
+- Retrieve uploaded documents
+- Download original files
+- Delete uploaded documents
 
 ---
 
 ## Automated Document Processing
 
-Uploaded documents are processed asynchronously.
+Documents are processed asynchronously after upload.
 
-The pipeline includes:
+Processing pipeline:
 
-- PDF text extraction
-- Text chunking
-- Embedding generation
-- Vector storage
-
-Workflow:
-
-```
+```text
 PDF Upload
 
-    |
+      │
 
 Text Extraction
 
-    |
+      │
 
-Chunk Creation
+Text Chunking
 
-    |
+      │
 
 Embedding Generation
 
-    |
+      │
 
-Vector Database Storage
+Vector Storage
+
+      │
+
+Ready for Retrieval
+```
+
+Document lifecycle:
+
+```text
+UPLOADED
+
+    │
+
+PROCESSING
+
+    │
+
+COMPLETED
+```
+
+If processing fails:
+
+```text
+PROCESSING
+
+    │
+
+FAILED
 ```
 
 ---
 
 ## Semantic Search
 
-The system uses vector embeddings to find relevant information.
+Traditional search relies on keyword matching.
 
-Instead of traditional keyword search:
-
-```
+```text
 keyword matching
 ```
 
-the system performs:
+The AI Knowledge Assistant instead performs:
 
-```
+```text
 meaning-based similarity search
 ```
 
@@ -131,240 +259,238 @@ using:
 
 - Sentence Transformers
 - PostgreSQL pgvector
-- Cosine similarity search
+- Cosine similarity retrieval
 
 ---
 
 ## Retrieval-Augmented Generation (RAG)
 
-The answer generation pipeline follows:
+The answer generation workflow follows:
 
-```
+```text
 User Question
 
-        |
+        │
 
-Retrieve Relevant Chunks
+Generate Question Embedding
 
-        |
+        │
+
+Retrieve Similar Document Chunks
+
+        │
 
 Build Context
 
-        |
+        │
 
 Send Context + Question to LLM
 
-        |
+        │
 
-Generate Grounded Response
+Generate Grounded Answer
 
-        |
+        │
 
 Return Answer + Sources
 ```
 
-The system is designed to reduce hallucination by instructing the LLM to only use retrieved document information.
+The language model only receives retrieved document context, significantly reducing hallucinations compared to standalone prompting.
 
 ---
 
 ## Source References
 
-Responses include supporting document information:
+Every generated answer includes supporting evidence from the uploaded documents.
 
-Example:
+Example response:
 
 ```json
 {
-  "answer": "The recommended operating system is Linux.",
+  "answer": "The recommended operating system is Ubuntu Linux.",
   "sources": [
     {
       "document": "technical_manual.pdf",
       "page": 4,
-      "relevance": 92
+      "relevance": 92,
+      "preview": "The application is supported on Ubuntu Linux..."
     }
   ]
 }
 ```
 
----
-
-# System Architecture
-
-```mermaid
-flowchart TD
-
-    User[User]
-
-    User --> Frontend[Streamlit Frontend]
-
-    Frontend --> API[FastAPI Backend]
-
-    API --> Upload[Document Upload]
-
-    API --> Search[Question Search]
-
-
-    Upload --> Storage[Storage Layer]
-
-    Storage --> Local[Local Storage]
-
-    Storage --> Cloud[Google Cloud Storage]
-
-
-    Upload --> Processor[Document Processing]
-
-
-    Processor --> Extract[PDF Extraction]
-
-    Extract --> Chunk[Text Chunking]
-
-    Chunk --> Embedding[Embedding Generation]
-
-    Embedding --> Database[(PostgreSQL + pgvector)]
-
-
-    Search --> Retrieval[Similarity Retrieval]
-
-    Retrieval --> Database
-
-    Retrieval --> LLM[Large Language Model]
-
-    LLM --> Response[Answer + Sources]
-```
-
----
-
-# Application Architecture
-
-The backend follows a modular layered architecture:
-
-```
-                API Layer
-                    |
-                    |
-             Service Layer
-                    |
-                    |
-          Repository / Data Access
-                    |
-                    |
-       Database + External Services
-```
-
-Main components:
-
-## FastAPI Backend
-
-Responsible for:
-
-- API endpoints
-- Request validation
-- Application coordination
-
-
-## Document Processing Service
-
-Responsible for:
-
-- PDF processing
-- Chunk creation
-- Embedding generation
-- Processing status updates
-
-
-## Retrieval Service
-
-Responsible for:
-
-- Question embedding generation
-- Similarity search
-- Relevant chunk retrieval
-
-
-## RAG Service
-
-Responsible for:
-
-- Context construction
-- Prompt creation
-- LLM response generation
-- Source formatting
-
-
-## Storage Layer
-
-Uses an abstraction layer:
-
-```
-BaseStorage
-
-      |
-
-+-------------+
-|             |
-
-LocalStorage  GCSStorage
-```
-
-This allows storage providers to change without modifying business logic.
+Providing source references improves transparency by allowing users to verify where each answer originated.
 
 ---
 
 # Technology Stack
 
-## Backend
+The project is built using a modern AI engineering stack designed for scalable Retrieval-Augmented Generation (RAG) applications.
 
-- Python
-- FastAPI
-- SQLAlchemy
-- Pydantic Settings
-- Uvicorn
-
-## AI / Machine Learning
-
-- Retrieval-Augmented Generation (RAG)
-- Sentence Transformers
-- Groq LLM API
-
-## Database
-
-- PostgreSQL
-- pgvector
-
-## Frontend
-
-- Streamlit
-
-## Infrastructure
-
-- Docker
-- Docker Compose
-
-## Testing
-
-- Pytest
-- FastAPI TestClient
+| Layer | Technologies |
+|--------|--------------|
+| **Backend** | Python, FastAPI, SQLAlchemy, Pydantic Settings, Uvicorn |
+| **AI / Machine Learning** | Retrieval-Augmented Generation (RAG), Sentence Transformers (`all-MiniLM-L6-v2`), Groq LLM API |
+| **Database** | PostgreSQL, pgvector |
+| **Frontend** | Streamlit |
+| **Storage** | Local Storage, Google Cloud Storage |
+| **Infrastructure** | Docker, Docker Compose, Render, Streamlit Community Cloud |
 
 ---
 
-# Project Structure
+# Application Architecture
 
-The repository is organized into separate backend, frontend, and documentation components.
+The backend follows a modular layered architecture that separates business logic, API endpoints, database access, and external integrations.
+
+```text
+                API Layer
+
+                    │
+
+             Service Layer
+
+                    │
+
+          Data Access Layer
+
+                    │
+
+      Database + External Services
+```
+
+Each layer has a single responsibility, making the application easier to maintain, extend, and test.
+
+---
+
+## FastAPI Backend
+
+The FastAPI application acts as the central orchestration layer.
+
+Responsibilities include:
+
+- API endpoint definitions
+- Request validation
+- Response serialization
+- Document operations
+- Background processing coordination
+- AI service integration
+- Error handling
+
+---
+
+## Document Processing Service
+
+Responsible for transforming uploaded PDF documents into searchable knowledge.
+
+Processing includes:
+
+- PDF text extraction
+- Text cleaning
+- Chunk generation
+- Embedding creation
+- Vector database storage
+- Processing status updates
+
+Workflow:
+
+```text
+PDF Upload
+
+      │
+
+Extract Text
+
+      │
+
+Split Into Chunks
+
+      │
+
+Generate Embeddings
+
+      │
+
+Store in pgvector
+```
+
+---
+
+## Retrieval Service
+
+The retrieval service performs semantic search against the vector database.
+
+Responsibilities:
+
+- Generate question embeddings
+- Perform cosine similarity search
+- Rank document chunks
+- Return the most relevant context
+
+This allows the system to retrieve information based on meaning rather than exact wording.
+
+---
+
+## RAG Service
+
+The Retrieval-Augmented Generation service prepares prompts for the language model.
+
+Responsibilities:
+
+- Build contextual prompts
+- Combine retrieved chunks
+- Communicate with the Groq API
+- Generate grounded answers
+- Format source references
+
+The service ensures that responses remain closely aligned with the retrieved document context.
+
+---
+
+## Storage Layer
+
+Document storage is abstracted behind a common interface.
+
+```text
+BaseStorage
+
+      │
+
++----------------------+
+|                      |
+
+LocalStorage     GCSStorage
+```
+
+This abstraction allows storage providers to be replaced without modifying application logic.
+
+Current implementations include:
+
+- Local filesystem storage
+- Google Cloud Storage (GCS)
+
+Future storage providers can be added with minimal code changes.
+
+---
+
+# Repository Structure
+
+The repository is organized into backend, frontend, infrastructure, and documentation components.
 
 ```text
 ai-knowledge-assistant/
 
 ├── backend/
-│   │
+│
 │   ├── app/
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── db/
-│   │   ├── middleware/
-│   │   ├── models/
-│   │   ├── routers/
-│   │   ├── schemas/
-│   │   └── services/
+│   │
+│   ├── api/
+│   ├── core/
+│   ├── db/
+│   ├── middleware/
+│   ├── models/
+│   ├── routers/
+│   ├── schemas/
+│   ├── services/
 │   │
 │   ├── tests/
 │   ├── alembic/
@@ -372,10 +498,14 @@ ai-knowledge-assistant/
 │   └── requirements.txt
 │
 ├── frontend/
+│
 │   ├── app.py
+│   ├── api/
+│   ├── components/
 │   └── requirements.txt
 │
 ├── docs/
+│
 │   ├── architecture.md
 │   ├── api_design.md
 │   ├── database_design.md
@@ -390,37 +520,98 @@ ai-knowledge-assistant/
 
 ---
 
-# Local Installation
+## Backend Directory
 
-## Prerequisites
+The backend contains the FastAPI application and supporting services.
 
-Before running the application, install:
-
-- Python 3.12+
-- Docker Desktop
-- Git
+| Directory | Purpose |
+|-----------|---------|
+| `api/` | API configuration and dependencies |
+| `core/` | Application configuration and settings |
+| `db/` | Database connection and session management |
+| `middleware/` | Custom middleware |
+| `models/` | SQLAlchemy database models |
+| `routers/` | API endpoint definitions |
+| `schemas/` | Pydantic request and response models |
+| `services/` | Business logic, document processing, retrieval, and AI integration |
+| `tests/` | Automated unit and integration tests |
 
 ---
 
-# 1. Clone Repository
+## Frontend Directory
+
+The Streamlit frontend provides an intuitive interface for interacting with the backend.
+
+Components include:
+
+- Document upload interface
+- Processing status display
+- Question-answer interface
+- Source reference display
+- API client utilities
+
+---
+
+## Documentation
+
+The `docs/` directory contains detailed technical documentation beyond this README.
+
+Recommended documents include:
+
+| Document | Description |
+|----------|-------------|
+| `architecture.md` | High-level system architecture |
+| `system_design.md` | End-to-end system design walkthrough |
+| `database_design.md` | Database schema and relationships |
+| `api_design.md` | API design and endpoint documentation |
+| `deployment.md` | Production deployment guide |
+| `decisions.md` | Architecture decisions and trade-offs |
+
+These documents provide additional implementation details and design rationale.
+
+---
+
+# Local Development Setup
+
+The project is designed for local development using **Docker Compose** for backend services and a Python virtual environment for the Streamlit frontend.
+
+---
+
+## Prerequisites
+
+Before running the application, ensure the following tools are installed:
+
+- Python **3.12+**
+- Docker Desktop
+- Git
+
+You should also have a valid **Groq API Key** for LLM inference.
+
+---
+
+# 1. Clone the Repository
+
+Clone the repository from GitHub:
 
 ```bash
-git clone https://github.com/your-username/ai-knowledge-assistant.git
+git clone https://github.com/<username>/ai-knowledge-assistant.git
 
 cd ai-knowledge-assistant
 ```
+
+Replace `<username>` with your GitHub username.
 
 ---
 
 # 2. Configure Environment Variables
 
-Create a backend environment file:
+Create an environment configuration file inside the backend directory.
 
 ```text
 backend/.env
 ```
 
-Example:
+Example configuration:
 
 ```env
 APP_NAME=AI Knowledge Assistant API
@@ -429,7 +620,7 @@ ENVIRONMENT=development
 
 DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/ai_assistant
 
-GROQ_API_KEY=your_api_key_here
+GROQ_API_KEY=your_groq_api_key
 
 STORAGE_PROVIDER=local
 
@@ -437,31 +628,31 @@ RETRIEVAL_TOP_K=5
 SIMILARITY_THRESHOLD=0.7
 ```
 
-A template is available:
+If available, copy the template:
 
-```text
-backend/.env.example
+```bash
+cp backend/.env.example backend/.env
 ```
 
-Sensitive information such as API keys should never be committed.
+Update the required values before starting the application.
+
+> **Important**
+>
+> Never commit API keys, credentials, or secrets to version control.
 
 ---
 
-# Running the Application
+# 3. Start the Backend Infrastructure
 
-The recommended development setup uses Docker Compose.
-
-## Start Backend and Database
-
-From the project root:
+From the project root, start the backend services using Docker Compose.
 
 ```bash
 docker compose up --build
 ```
 
-This starts:
+This command builds and starts:
 
-```
+```text
 FastAPI Backend
 
         +
@@ -470,176 +661,448 @@ PostgreSQL Database
 with pgvector
 ```
 
+The first build may take several minutes depending on your internet connection.
+
 ---
 
-# Backend API
+## Backend API
 
-The backend runs on:
+After the containers have started successfully, the FastAPI server will be available at:
 
-```
+```text
 http://localhost:8000
 ```
 
-Interactive API documentation:
+Interactive Swagger documentation:
 
-```
+```text
 http://localhost:8000/docs
 ```
 
-FastAPI automatically generates Swagger documentation.
+Alternative ReDoc documentation:
+
+```text
+http://localhost:8000/redoc
+```
+
+FastAPI automatically generates interactive API documentation from the application's OpenAPI schema.
 
 ---
 
-# Frontend Application
+# 4. Start the Frontend
 
-The frontend is built with Streamlit.
-
-Navigate to:
+Navigate to the frontend directory.
 
 ```bash
 cd frontend
 ```
 
-Activate the frontend environment:
+Create a virtual environment.
+
+**Windows**
 
 ```bash
+python -m venv venv
+```
+
+Activate the environment.
+
+**Windows (PowerShell)**
+
+```powershell
+venv\Scripts\Activate.ps1
+```
+
+**Windows (Command Prompt)**
+
+```cmd
 venv\Scripts\activate
 ```
 
-Run Streamlit:
+**macOS / Linux**
+
+```bash
+source venv/bin/activate
+```
+
+Install dependencies.
+
+```bash
+pip install -r requirements.txt
+```
+
+Run the Streamlit application.
 
 ```bash
 streamlit run app.py
 ```
 
-The frontend will open in the browser.
+The frontend will automatically open in your default web browser.
+
+If it does not, navigate to:
+
+```text
+http://localhost:8501
+```
+
+---
+
+# Running the Application
+
+After both services are running, the workflow is straightforward.
+
+```text
+Upload PDF
+
+      │
+
+Background Processing
+
+      │
+
+Embedding Generation
+
+      │
+
+Vector Database Storage
+
+      │
+
+Ask Questions
+
+      │
+
+Retrieve Relevant Chunks
+
+      │
+
+LLM Generates Answer
+
+      │
+
+Answer + Source References
+```
+
+---
+
+# Configuration
+
+Several application settings can be customized through environment variables.
+
+| Variable | Description |
+|-----------|-------------|
+| `APP_NAME` | FastAPI application name |
+| `API_VERSION` | API version |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `GROQ_API_KEY` | API key for Groq LLM |
+| `STORAGE_PROVIDER` | Storage backend (`local` or `gcs`) |
+| `RETRIEVAL_TOP_K` | Number of document chunks retrieved |
+| `SIMILARITY_THRESHOLD` | Minimum similarity score for retrieval |
+
+These settings allow the application to be configured without modifying source code.
+
+---
+
+# Storage Providers
+
+The application supports interchangeable storage backends through a storage abstraction layer.
+
+Current implementations include:
+
+- Local filesystem storage
+- Google Cloud Storage (GCS)
+
+Switching providers only requires updating the configuration:
+
+```env
+STORAGE_PROVIDER=local
+```
+
+or
+
+```env
+STORAGE_PROVIDER=gcs
+```
+
+No application code changes are required.
+
+---
+
+# Development Workflow
+
+A typical development workflow is:
+
+1. Start Docker services.
+2. Upload one or more PDF documents.
+3. Wait for document processing to complete.
+4. Ask natural language questions.
+5. Review generated answers and supporting sources.
+6. Make code changes as needed.
+7. Restart affected services when required.
+
+This workflow closely mirrors the production deployment architecture, making it easier to transition between development and deployment environments.
 
 ---
 
 # API Endpoints
 
+The backend exposes a RESTful API for document management and Retrieval-Augmented Generation (RAG).
+
+Once the backend is running, interactive API documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
+
+The OpenAPI specification is automatically generated by FastAPI.
+
+---
+
 ## Upload Document
 
-### Request
+Uploads a PDF document and starts the asynchronous processing pipeline.
 
-```
+### Endpoint
+
+```http
 POST /documents/upload
 ```
 
-Uploads a PDF document and starts background processing.
+### Content Type
+
+```text
+multipart/form-data
+```
+
+### Request
+
+| Field | Type | Description |
+|--------|------|-------------|
+| `file` | PDF | Document to upload |
+
+### Response
+
+```json
+{
+  "id": "2c8f6f87-5e72-4c75-b9f3-9f2f9afbbd28",
+  "filename": "technical_manual.pdf",
+  "status": "UPLOADED"
+}
+```
+
+Processing begins immediately after upload.
 
 ---
 
 ## Retrieve Documents
 
-### Request
+Returns all uploaded documents and their processing status.
 
-```
+### Endpoint
+
+```http
 GET /documents
 ```
 
-Returns uploaded documents and processing status.
+### Response
+
+```json
+[
+  {
+    "id": "2c8f6f87-5e72-4c75-b9f3-9f2f9afbbd28",
+    "filename": "technical_manual.pdf",
+    "status": "COMPLETED"
+  }
+]
+```
 
 ---
 
 ## Retrieve Document Metadata
 
-### Request
+Returns metadata for a specific uploaded document.
 
-```
+### Endpoint
+
+```http
 GET /documents/{document_id}
 ```
 
-Returns information about a specific document.
+### Path Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `document_id` | Unique document identifier |
+
+### Example Response
+
+```json
+{
+  "id": "2c8f6f87-5e72-4c75-b9f3-9f2f9afbbd28",
+  "filename": "technical_manual.pdf",
+  "status": "COMPLETED",
+  "uploaded_at": "2026-07-20T10:42:15Z"
+}
+```
 
 ---
 
-## Download Original File
+## Download Original Document
 
-### Request
+Downloads the original uploaded PDF.
 
-```
+### Endpoint
+
+```http
 GET /documents/{document_id}/file
 ```
 
-Retrieves the original uploaded document.
+### Response
+
+Returns the original PDF file.
 
 ---
 
 ## Delete Document
 
-### Request
+Deletes both the uploaded file and its associated database records.
 
-```
+### Endpoint
+
+```http
 DELETE /documents/{document_id}
 ```
 
-Deletes:
+### Deletes
 
-- Database record
-- Stored document file
+- Stored PDF document
+- Vector embeddings
+- Database metadata
+
+### Example Response
+
+```json
+{
+  "message": "Document deleted successfully."
+}
+```
 
 ---
 
 ## Ask Questions
 
-### Request
+Queries the uploaded knowledge base using Retrieval-Augmented Generation.
 
-```
+### Endpoint
+
+```http
 POST /documents/search
 ```
 
-Example:
+### Request Body
 
 ```json
 {
-    "question": "What operating system is recommended?"
-}
-```
-
-Response:
-
-```json
-{
-    "answer": "Linux is the recommended operating system.",
-    "sources": [
-        {
-            "document": "manual.pdf",
-            "page": 4,
-            "relevance": 92,
-            "preview": "..."
-        }
-    ]
+  "question": "What operating system is recommended?"
 }
 ```
 
 ---
 
-# Running Tests
+### Retrieval Workflow
 
-Automated tests are included using Pytest.
+```text
+User Question
 
-Run tests inside the backend container:
+        │
+
+Generate Question Embedding
+
+        │
+
+Similarity Search
+
+        │
+
+Retrieve Relevant Chunks
+
+        │
+
+Construct Context
+
+        │
+
+Generate LLM Response
+
+        │
+
+Return Answer + Sources
+```
+
+---
+
+### Example Response
+
+```json
+{
+  "answer": "Ubuntu Linux is the recommended operating system.",
+  "sources": [
+    {
+      "document": "technical_manual.pdf",
+      "page": 4,
+      "relevance": 92,
+      "preview": "The application is supported on Ubuntu Linux..."
+    }
+  ]
+}
+```
+
+Each response includes supporting document references to improve transparency and traceability.
+
+---
+
+# Testing
+
+Automated tests are implemented using:
+
+- Pytest
+- FastAPI TestClient
+
+Current test coverage includes:
+
+- Health endpoint
+- Document upload workflow
+- PDF processing
+- Retrieval endpoint
+- RAG response structure
+
+---
+
+## Running Tests
+
+If running inside Docker:
 
 ```bash
 docker exec -it ai_assistant_backend pytest
 ```
 
-Current tests cover:
+Or locally:
 
-- Health endpoint
-- Document upload workflow
-- RAG search response structure
+```bash
+pytest
+```
 
 Example output:
 
-```
-========================
+```text
+=============================
 
-3 passed
+5 passed
 
-========================
+=============================
 ```
+
+As additional features are implemented, test coverage can be expanded to include integration, performance, and end-to-end testing.
 
 ---
 
@@ -647,115 +1110,343 @@ Example output:
 
 Database schema changes are managed using Alembic.
 
-Apply migrations:
-
-```bash
-alembic upgrade head
-```
-
 Create a migration:
 
 ```bash
 alembic revision --autogenerate -m "description"
 ```
 
+Apply migrations:
+
+```bash
+alembic upgrade head
+```
+
+Rollback one migration:
+
+```bash
+alembic downgrade -1
+```
+
+Keeping schema changes under version control ensures consistent deployments across development and production environments.
+
 ---
 
-# Documentation
+# Deployment Architecture
 
-Additional technical documentation is available in:
+The application is designed using a cloud-native deployment architecture.
 
+```text
+                     GitHub Repository
+
+                             │
+
+               ┌─────────────┴─────────────┐
+
+               │                           │
+
+        Streamlit Community          Render
+
+             Frontend               FastAPI Backend
+
+                                           │
+
+                                  PostgreSQL + pgvector
+
+                                           │
+
+                               Google Cloud Storage
 ```
-docs/
-```
 
-Including:
+---
 
-| Document | Description |
-|---|---|
-| architecture.md | System architecture overview |
-| api_design.md | API structure and endpoints |
-| database_design.md | Database schema and relationships |
-| deployment.md | Deployment and setup guide |
-| decisions.md | Architecture decisions and trade-offs |
-| system_design.md | Interview-style system design explanation |
+## Production Components
+
+| Component | Service |
+|-----------|---------|
+| Frontend | Streamlit Community Cloud |
+| Backend | Render |
+| Database | PostgreSQL with pgvector |
+| File Storage | Google Cloud Storage |
+| LLM Provider | Groq API |
+
+This architecture separates presentation, application logic, persistence, and AI services, making the system easier to scale and maintain.
+
+---
+
+# Current Production Limitations
+
+The current implementation is intended as a **portfolio demonstration** of a modern Retrieval-Augmented Generation (RAG) application and follows a **single-tenant architecture**.
+
+Current limitations include:
+
+- No user authentication
+- No authorization or role management
+- Documents are shared across the application instance
+- No user-specific document isolation
+- Background processing uses FastAPI background tasks rather than a distributed task queue
+
+To reduce risk during demonstrations, uploaded documents can be deleted directly through the application.
 
 ---
 
 # Future Improvements
 
-Potential future enhancements include:
+The project has been intentionally designed with extensibility in mind. Several production-oriented enhancements can be implemented with minimal architectural changes.
 
-## Authentication and Authorization
+---
 
-- User accounts
-- Role-based permissions
-- Document ownership
+## Authentication & Authorization
+
+Introduce a secure multi-user architecture with:
+
+- User registration
+- Login and authentication
+- JWT-based authorization
+- User-owned documents
+- Role-based access control (RBAC)
+- Tenant isolation
 
 ---
 
 ## Scalable Processing Pipeline
 
-Replace FastAPI background tasks with:
+Replace FastAPI background tasks with a distributed processing system.
+
+Potential technologies:
 
 - Celery
-- Redis Queue
-- Cloud task workers
+- Redis Queue (RQ)
+- RabbitMQ
+- Google Cloud Tasks
 
-for reliable large-scale processing.
+Benefits include:
+
+- Retry mechanisms
+- Improved reliability
+- Parallel document processing
+- Horizontal scalability
 
 ---
 
-## Advanced Document Support
+## Expanded Document Support
 
-Add support for:
+Extend document ingestion beyond PDF files.
 
-- Word documents
-- PowerPoint files
-- Markdown files
+Potential formats include:
+
+- Microsoft Word (`.docx`)
+- Microsoft PowerPoint (`.pptx`)
+- Markdown (`.md`)
+- Plain text (`.txt`)
+- HTML
 - Web pages
+- CSV files
 
 ---
 
-## Production Infrastructure
+## Advanced Retrieval
 
-Future deployment options:
+Improve retrieval quality through more advanced techniques.
 
-- Kubernetes
-- Cloud Run
-- AWS ECS
-- Azure Container Apps
+Potential enhancements:
+
+- Hybrid search (vector + keyword)
+- Metadata filtering
+- Parent-child chunk retrieval
+- Query expansion
+- Multi-query retrieval
+- Cross-encoder reranking
 
 ---
 
-## RAG Evaluation
+## Improved RAG Evaluation
 
-Add automated evaluation for:
+Introduce automated evaluation pipelines for measuring retrieval and generation quality.
 
-- Retrieval accuracy
-- Answer relevance
+Metrics may include:
+
+- Retrieval precision
+- Recall
+- Context relevance
+- Answer faithfulness
 - Hallucination detection
+- Answer completeness
+
+Benchmark datasets can also be incorporated for repeatable evaluation.
+
+---
+
+## Production Monitoring
+
+Add observability across the application stack.
+
+Potential additions:
+
+- Structured logging
+- Metrics dashboards
+- Error tracking
+- Performance monitoring
+- Request tracing
+- Health dashboards
+
+Recommended tools include:
+
+- Prometheus
+- Grafana
+- OpenTelemetry
+- Sentry
+
+---
+
+## CI/CD Pipeline
+
+Automate testing and deployment.
+
+Potential workflow:
+
+```text
+GitHub Push
+
+      │
+
+Run Tests
+
+      │
+
+Build Docker Images
+
+      │
+
+Deploy Backend
+
+      │
+
+Deploy Frontend
+
+      │
+
+Production
+```
+
+This enables reliable deployments and continuous integration.
 
 ---
 
 # Project Status
 
-Current implementation includes:
+The current implementation includes the following completed features:
 
-✅ Document upload  
-✅ Background document processing  
-✅ PDF text extraction  
-✅ Text chunking  
-✅ Embedding generation  
-✅ PostgreSQL vector storage  
-✅ Semantic retrieval  
-✅ LLM-based answer generation  
-✅ Source references  
-✅ Docker development environment  
-✅ Automated tests  
+### Backend
+
+- ✅ FastAPI REST API
+- ✅ SQLAlchemy ORM
+- ✅ PostgreSQL integration
+- ✅ pgvector support
+- ✅ Modular service architecture
+- ✅ Storage abstraction layer
+- ✅ Background document processing
+
+---
+
+### AI / Machine Learning
+
+- ✅ Retrieval-Augmented Generation (RAG)
+- ✅ Sentence Transformer embeddings
+- ✅ Semantic similarity search
+- ✅ Context-aware prompt generation
+- ✅ Groq LLM integration
+- ✅ Source attribution
+
+---
+
+### Document Processing
+
+- ✅ PDF upload
+- ✅ PDF text extraction
+- ✅ Text chunking
+- ✅ Embedding generation
+- ✅ Vector database storage
+- ✅ Processing status tracking
+- ✅ Document deletion
+
+---
+
+### Frontend
+
+- ✅ Streamlit interface
+- ✅ Document upload
+- ✅ Processing status display
+- ✅ Question-answer interface
+- ✅ Source reference display
+
+---
+
+### Infrastructure
+
+- ✅ Docker development environment
+- ✅ Docker Compose
+- ✅ Render backend deployment
+- ✅ Streamlit Community Cloud deployment
+- ✅ Google Cloud Storage integration
+
+---
+
+### Documentation
+
+- ✅ Comprehensive README
+- ✅ API documentation
+- ✅ Architecture documentation
+- ✅ Deployment guide
+- ✅ Production-ready project structure
+
+---
+
+# Learning Outcomes
+
+This project demonstrates practical experience with:
+
+- Retrieval-Augmented Generation (RAG)
+- Large Language Model integration
+- Vector databases
+- Semantic search
+- Backend engineering with FastAPI
+- Cloud-native application architecture
+- Database design
+- Docker containerization
+- Production deployment
+- Modular software architecture
+
+---
+
+# Acknowledgements
+
+This project leverages several outstanding open-source technologies.
+
+Special thanks to the communities behind:
+
+- FastAPI
+- Streamlit
+- PostgreSQL
+- pgvector
+- Sentence Transformers
+- SQLAlchemy
+- Docker
+
+Their tools make modern AI application development significantly more accessible.
 
 ---
 
 # License
 
-This project is currently developed as a portfolio and engineering project.
+This project is developed as a **portfolio engineering project** demonstrating modern AI application architecture, Retrieval-Augmented Generation (RAG), backend engineering, cloud deployment, and software engineering best practices.
+
+It is intended for educational, demonstration, and portfolio purposes.
+
+---
+
+## Contact
+
+If you'd like to discuss the project, provide feedback, or connect professionally, feel free to reach out through GitHub or LinkedIn.
+
+If you found this project useful, consider giving the repository a ⭐.
