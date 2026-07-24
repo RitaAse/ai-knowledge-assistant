@@ -231,3 +231,11 @@ Thumbs.db
 
 # Google Cloud credentials
 backend/keys/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS metadata
+.AppleDouble
+.LSOverride
