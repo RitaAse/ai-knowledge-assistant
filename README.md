@@ -64,12 +64,20 @@ Typical use cases include:
 # Screenshots
 
 ## Home Page
+The Streamlit interface provides document management and AI-powered question answering.
 
-![Home](docs/images/home.png)
+![Home](docs/images/homepage.png)
 
 ## Upload Documents
+Users can upload PDF documents which are processed through the RAG pipeline.
 
 ![Upload](docs/images/upload.png)
+
+
+
+## Document Proceesing Status
+![Processing](docs/images/processing.png)
+![Ready](docs/images/ready.png)
 
 ## Ask Questions
 
@@ -78,12 +86,12 @@ Typical use cases include:
 ---
 
 # Demo GIF
-A short 20–30 second GIF showing:
+![Demo](docs/images/rag-demo-gif.gif)
 
-Upload a PDF
-Wait for processing
-Ask a question
-Receive an answer with sources
+- Upload a PDF
+- Wait for processing
+- Ask a question
+- Receive an answer with sources
 
 # Live Demo
 
