@@ -26,7 +26,7 @@ def chat_interface():
                     for source in message["sources"]:
 
                         st.write(
-                            f"📄 {source['document']}"
+                            f"📄 {source['document']} (Page {source['page']})"
                         )
 
                         st.caption(
@@ -68,15 +68,6 @@ def chat_interface():
             result = search_documents(
                 question
             )
-        
-        with st.spinner(
-            "Thinking..."
-        ):
-
-            result = search_documents(
-                question
-            )
-
 
         st.session_state.messages.append(
             {
