@@ -1,68 +1,85 @@
-# AI Knowledge Assistant API Design
+# AI Knowledge Assistant - API Design
 
-## 1. Overview
+## Overview
 
-The AI Knowledge Assistant API provides endpoints for uploading documents, managing stored files, and querying uploaded content through a Retrieval-Augmented Generation (RAG) pipeline.
+The AI Knowledge Assistant API provides the backend interface for document management and Retrieval-Augmented Generation (RAG) functionality.
 
-The API is built using FastAPI and follows REST principles.
+The API is built using:
 
-The main responsibilities of the API layer are:
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- PostgreSQL
 
-- Accept document uploads
-- Manage document metadata
-- Retrieve stored documents
-- Remove documents and associated files
-- Process natural language questions
-- Return grounded AI-generated answers with sources
+The API is responsible for:
+
+- Receiving document uploads
+- Managing document metadata
+- Triggering document processing
+- Retrieving stored documents
+- Performing semantic search
+- Returning grounded AI-generated answers with sources
 
 ---
 
-# 2. API Architecture
+# API Architecture
 
 The API follows a layered architecture:
 
 ```text
 Client
-  |
-  v
+
+ |
+
+ v
+
 FastAPI Router Layer
-  |
-  v
+
+ |
+
+ v
+
 Service Layer
-  |
-  +----------------+
-  |                |
-Storage        Database
-Layer          Layer
-  |
-  v
-External Services
-(LLM + Embeddings)
+
+ |
+
+ +----------------+
+
+ |                |
+
+Database       Storage
+
+ |
+
+ v
+
+AI Services
+(Embeddings + LLM)
 ```
 
-The API layer is responsible only for:
+The API layer focuses on:
 
-- Request validation
-- Authentication/dependency handling (future)
-- Calling application services
-- Returning structured responses
+- Request handling
+- Validation
+- Response formatting
 
-Business logic is handled by dedicated service modules.
+Business logic is implemented inside dedicated services.
 
 ---
 
-# 3. Base URL
+# Deployment
 
-Local development:
+## Local Development
+
+Backend:
 
 ```
 http://localhost:8000
 ```
 
-API documentation:
+Swagger documentation:
 
 ```
-Swagger UI:
 http://localhost:8000/docs
 ```
 
@@ -74,25 +91,65 @@ http://localhost:8000/openapi.json
 
 ---
 
-# 4. Document Management API
+## Cloud Deployment
 
-## 4.1 Upload Document
+The backend is deployed using:
 
-### Endpoint
+```
+Render
+```
+
+The frontend communicates with the deployed API through HTTP requests.
+
+Production URL:
+
+```
+<Render backend URL>
+```
+
+---
+
+# API Endpoints Overview
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/documents/upload` | Upload a document |
+| GET | `/documents` | Retrieve documents |
+| GET | `/documents/{id}` | Retrieve document metadata |
+| GET | `/documents/{id}/file` | Download original file |
+| DELETE | `/documents/{id}` | Delete document |
+| POST | `/documents/search` | Ask questions using RAG |
+
+---
+
+# Document Management API
+
+---
+
+# Upload Document
+
+## Endpoint
 
 ```
 POST /documents/upload
 ```
 
-### Description
+## Description
 
-Uploads a PDF document to the configured storage provider and starts asynchronous document processing.
+Uploads a PDF document and starts asynchronous processing.
 
-The upload request immediately returns after storing the file. Document extraction, chunking, and embedding generation happen in the background.
+The upload request performs:
+
+1. Save document file
+2. Create document metadata
+3. Return upload response
+4. Start background processing
+
+Processing occurs asynchronously.
 
 ---
 
-### Request
+## Request
 
 Content-Type:
 
@@ -100,41 +157,15 @@ Content-Type:
 multipart/form-data
 ```
 
-Form field:
+Parameter:
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| file | PDF file | Yes | Document to upload |
-
----
-
-### Processing Flow
-
-```mermaid
-sequenceDiagram
-
-    User->>API: Upload PDF
-
-    API->>Storage: Save File
-
-    API->>Database: Create Document Record
-
-    API-->>User: Return Document Metadata
-
-    API->>Background Task: Start Processing
-
-    Background Task->>Storage: Retrieve File
-
-    Background Task->>Processor: Extract Text
-
-    Processor->>Embedding Model: Generate Embeddings
-
-    Embedding Model->>Database: Store Chunks
-```
+| Field | Type | Required |
+|---|---|---|
+| file | PDF | Yes |
 
 ---
 
-### Successful Response
+## Response
 
 Status:
 
@@ -146,218 +177,115 @@ Example:
 
 ```json
 {
-  "id": 1,
-  "filename": "employee_handbook.pdf",
-  "file_type": "application/pdf",
-  "file_size": 245632,
-  "processing_status": "UPLOADED",
-  "created_at": "2026-07-24T10:30:00"
+    "id": 1,
+    "filename": "manual.pdf",
+    "processing_status": "UPLOADED",
+    "created_at": "2026-07-24T10:30:00"
 }
 ```
 
 ---
 
-### Processing States
+# Document Processing Lifecycle
 
-Documents move through the following lifecycle:
+Documents move through:
 
 ```text
 UPLOADED
+
     |
+
     v
+
 PROCESSING
+
     |
+
     v
+
 COMPLETED
 ```
 
-If processing fails:
+Failed processing:
 
 ```text
 PROCESSING
+
     |
+
     v
+
 FAILED
 ```
 
 ---
 
-### Error Responses
+# Retrieve Documents
 
-#### Invalid Request
-
-Status:
-
-```
-400 Bad Request
-```
-
-Example:
-
-```json
-{
-  "detail": "Invalid document."
-}
-```
-
----
-
-#### Server Error
-
-Status:
-
-```
-500 Internal Server Error
-```
-
-Example:
-
-```json
-{
-  "detail": "Unexpected server error."
-}
-```
-
----
-
-# 5. Retrieve Documents
-
-## 5.1 List Uploaded Documents
-
-### Endpoint
+## Endpoint
 
 ```
 GET /documents
 ```
 
-### Description
+## Description
 
-Returns all uploaded documents ordered by creation date.
-
-This endpoint provides document metadata and current processing status.
+Returns uploaded documents and processing status.
 
 ---
 
-### Successful Response
-
-Status:
-
-```
-200 OK
-```
+## Response
 
 Example:
 
 ```json
 [
-  {
-    "id": 1,
-    "filename": "employee_handbook.pdf",
-    "file_type": "application/pdf",
-    "file_size": 245632,
-    "processing_status": "COMPLETED",
-    "created_at": "2026-07-24T10:30:00"
-  }
+    {
+        "id": 1,
+        "filename": "manual.pdf",
+        "processing_status": "COMPLETED"
+    }
 ]
 ```
 
 ---
 
-# 5.2 Retrieve Document Details
+# Retrieve Document Details
 
-### Endpoint
+## Endpoint
 
 ```
 GET /documents/{document_id}
 ```
 
-### Description
-
-Returns metadata and processing information for a specific document.
+Returns metadata for one document.
 
 ---
 
-### Path Parameter
-
-| Parameter | Type | Description |
-|---|---|---|
-| document_id | integer | Unique document identifier |
-
----
-
-### Successful Response
-
-Status:
-
-```
-200 OK
-```
-
-Example:
+## Example Response
 
 ```json
 {
-  "id": 1,
-  "filename": "employee_handbook.pdf",
-  "file_type": "application/pdf",
-  "file_size": 245632,
-  "processing_status": "COMPLETED",
-  "created_at": "2026-07-24T10:30:00"
+    "id": 1,
+    "filename": "manual.pdf",
+    "file_type": "application/pdf",
+    "processing_status": "COMPLETED"
 }
 ```
 
 ---
 
-### Error Response
+# Download Original Document
 
-If the document does not exist:
-
-Status:
-
-```
-404 Not Found
-```
-
-Example:
-
-```json
-{
-  "detail": "Document not found."
-}
-```
-
----
-
-# 6. File Retrieval API
-
-## 6.1 Download Original Document
-
-### Endpoint
+## Endpoint
 
 ```
 GET /documents/{document_id}/file
 ```
 
-### Description
+## Description
 
-Retrieves the original uploaded document from the configured storage provider.
-
-The API supports different storage implementations through the storage abstraction layer.
-
-Current providers:
-
-- Local file storage
-- Google Cloud Storage
-
----
-
-### Successful Response
-
-Status:
-
-```
-200 OK
-```
+Retrieves the original uploaded PDF.
 
 Response:
 
@@ -368,236 +296,277 @@ Binary PDF file
 Headers:
 
 ```http
-Content-Disposition: attachment; filename="document.pdf"
 Content-Type: application/pdf
+
+Content-Disposition: attachment
 ```
 
 ---
 
-### Error Responses
+# Delete Document
 
-Document not found:
-
-```
-404 Not Found
-```
-
-```json
-{
-  "detail": "Document not found."
-}
-```
-
-Stored file unavailable:
-
-```
-404 Not Found
-```
-
-```json
-{
-  "detail": "File not found."
-}
-```
-
----
-
-# 7. Delete Document API
-
-## 7.1 Delete Document
-
-### Endpoint
+## Endpoint
 
 ```
 DELETE /documents/{document_id}
 ```
 
-### Description
+## Description
 
 Deletes:
 
-- Document database record
-- Associated stored file
-
-The endpoint removes both metadata and physical storage.
+- Document metadata
+- Stored file
+- Associated chunks
 
 ---
 
-### Successful Response
-
-Status:
-
-```
-200 OK
-```
-
-Example:
+## Response
 
 ```json
 {
-  "message": "Document deleted successfully."
+    "message": "Document deleted successfully."
 }
 ```
 
 ---
 
-### Error Response
-
-If the document does not exist:
-
-Status:
-
-```
-404 Not Found
-```
-
-Example:
-
-```json
-{
-  "detail": "Document not found."
-}
-```
+# Retrieval-Augmented Generation API
 
 ---
 
-# 8. Retrieval-Augmented Generation (RAG) API
+# Ask Question
 
-## 8.1 Search Documents
-
-### Endpoint
+## Endpoint
 
 ```
 POST /documents/search
 ```
 
-### Description
+## Description
 
-Answers user questions using information retrieved from uploaded documents.
+Answers questions using uploaded documents.
 
-The endpoint performs:
+The pipeline:
 
-1. Convert question into an embedding vector.
-2. Search document chunks using vector similarity.
-3. Filter weak matches using similarity thresholds.
-4. Send relevant context to the LLM.
-5. Return an answer with source references.
+```text
+User Question
+
+ |
+
+Question Embedding
+
+ |
+
+Vector Similarity Search
+
+ |
+
+Relevant Document Chunks
+
+ |
+
+Context Construction
+
+ |
+
+LLM Generation
+
+ |
+
+Answer + Sources
+```
 
 ---
 
-## Request Body
-
-Content-Type:
-
-```
-application/json
-```
-
-Schema:
-
-```json
-{
-  "question": "What operating system is recommended?"
-}
-```
-
----
-
-## Successful Response
-
-Status:
-
-```
-200 OK
-```
+# Request
 
 Example:
 
 ```json
 {
-  "answer": "The recommended operating system is Ubuntu Linux.",
-  "sources": [
-    {
-      "document": "technical_manual.pdf",
-      "page": 4,
-      "relevance": 92,
-      "preview": "The application is supported on Ubuntu Linux..."
-    }
-  ]
+    "question": "What operating system is required?"
 }
 ```
 
 ---
 
-# 9. RAG Response Design
+# Response
 
-The response contains:
+Example:
 
-## Answer
-
-The generated response from the LLM.
-
-The generation process follows grounding rules:
-
-- Only use retrieved document information.
-- Avoid unsupported assumptions.
-- Clearly state when information is unavailable.
+```json
+{
+    "answer": "The recommended operating system is Linux.",
+    "sources": [
+        {
+            "document": "installation-guide.pdf",
+            "page": 4,
+            "relevance": 92,
+            "preview": "Linux is supported..."
+        }
+    ]
+}
+```
 
 ---
 
-## Sources
-
-Source metadata provides transparency about where the answer originated.
+# Source Response Design
 
 Each source contains:
 
 | Field | Description |
 |---|---|
-| document | Original document name |
-| page | Page number containing information |
-| relevance | Similarity relevance score |
-| preview | Extracted text preview |
+| document | Document filename |
+| page | Source page number |
+| relevance | Similarity score |
+| preview | Supporting text |
+
+Source references improve:
+
+- Transparency
+- Trust
+- Answer verification
 
 ---
 
-# 10. API Error Handling
+# Error Handling
 
-The API follows consistent HTTP error responses.
+The API uses standard HTTP status codes.
 
-## Common Status Codes
-
-| Status Code | Meaning |
+| Code | Meaning |
 |---|---|
 | 200 | Successful request |
 | 201 | Resource created |
 | 400 | Invalid request |
 | 404 | Resource not found |
-| 500 | Unexpected server error |
+| 500 | Server error |
 
 ---
 
-## Error Response Format
-
-Example:
+## Example Error Response
 
 ```json
 {
-  "detail": "Document not found."
+    "detail": "Document not found."
 }
 ```
 
 ---
 
-# 11. Future API Improvements
+# Current API Limitations
 
-Potential future improvements:
+The current version is designed as a portfolio demonstration.
 
-- Authentication and authorization
-- User-specific document access
-- Pagination for document listing
-- Upload validation and file size limits
-- API versioning
-- Rate limiting
-- Streaming LLM responses
-- Additional document formats
-- Background task queue integration
+## Authentication
+
+Currently:
+
+```
+Single application environment
+```
+
+Future versions will introduce:
+
+- User accounts
+- Authentication
+- Authorization
+- Document ownership
+
+---
+
+## Multi-user Support
+
+Future architecture:
+
+```text
+User
+
+ |
+
+Documents
+
+ |
+
+Permissions
+
+ |
+
+RAG Pipeline
+```
+
+---
+
+# Future API Improvements
+
+Potential improvements:
+
+## API Versioning
+
+Example:
+
+```
+/api/v1/documents
+```
+
+---
+
+## Pagination
+
+For large document collections:
+
+```
+GET /documents?page=1&limit=20
+```
+
+---
+
+## Authentication
+
+Possible approaches:
+
+- OAuth2
+- JWT tokens
+- Enterprise identity providers
+
+---
+
+## Streaming Responses
+
+Future RAG responses could support:
+
+- Token streaming
+- Progressive answer generation
+- Better user experience
+
+---
+
+## Rate Limiting
+
+Production systems should include:
+
+- Request limits
+- Abuse prevention
+- API monitoring
+
+---
+
+# API Summary
+
+The AI Knowledge Assistant API provides:
+
+✅ Document upload  
+✅ Document lifecycle management  
+✅ File retrieval  
+✅ Document deletion  
+✅ Semantic search  
+✅ RAG-based question answering  
+✅ Source-grounded responses  
+
+The API design follows modern backend engineering practices:
+
+- REST principles
+- Layered architecture
+- Service separation
+- Structured responses
+- Future scalability considerations

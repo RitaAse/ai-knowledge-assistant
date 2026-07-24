@@ -2,27 +2,28 @@
 
 ## 1. Overview
 
-The AI Knowledge Assistant is designed to run as a containerized application using Docker.
-
-The deployment setup separates application components:
+The AI Knowledge Assistant is deployed as a cloud-based application consisting of:
 
 - FastAPI backend
 - PostgreSQL database
 - pgvector extension
 - Streamlit frontend
+- Cloud storage layer
 
-Docker Compose is used to manage local development services.
+The application separates frontend, backend, and infrastructure responsibilities to support independent deployment and future scaling.
 
 ---
 
 # 2. Deployment Architecture
+
+Current deployment architecture:
 
 ```mermaid
 flowchart TD
 
     User[User]
 
-    User --> Frontend[Streamlit Frontend]
+    User --> Frontend[Streamlit Cloud]
 
     Frontend --> Backend[FastAPI Backend]
 
@@ -30,184 +31,360 @@ flowchart TD
 
     Backend --> Storage[Storage Layer]
 
-    Storage --> Local[Local File Storage]
+    Storage --> Local[Local Storage]
 
-    Storage --> GCS[Google Cloud Storage]
+    Storage --> Cloud[GCS Storage]
 ```
 
 ---
 
-# 3. Local Development Environment
+# 3. Deployment Components
 
-The application requires:
+## Frontend
 
-- Python
+Technology:
+
+```
+Streamlit
+```
+
+Deployment platform:
+
+```
+Streamlit Community Cloud
+```
+
+Responsibilities:
+
+- User interface
+- Document upload interface
+- Chat interface
+- Displaying answers and sources
+- Communicating with backend API
+
+---
+
+## Backend
+
+Technology:
+
+```
+FastAPI
+```
+
+Deployment platform:
+
+```
+Render
+```
+
+Responsibilities:
+
+- API endpoints
+- Document processing
+- Retrieval pipeline
+- LLM communication
+- Database operations
+
+---
+
+## Database
+
+Technology:
+
+```
+- Neon PostgreSQL
+- pgvector
+- SQLAlchemy ORM
+- Alembic migrations
+```
+
+Responsibilities:
+
+- Store document metadata
+- Store processed chunks
+- Store embeddings
+- Support similarity search
+
+---
+
+# 4. Local Development Deployment
+
+For local development, the application uses Docker Compose.
+
+Architecture:
+
+```text
+Docker Compose
+
+        |
+
+        +----------------+
+
+        |                |
+
+   FastAPI          PostgreSQL
+
+   Backend          + pgvector
+```
+
+---
+
+# 5. Local Requirements
+
+Required tools:
+
+- Python 3.12+
 - Docker Desktop
-- PostgreSQL
 - Git
 
-Recommended versions:
+Recommended:
 
 | Component | Version |
 |---|---|
 | Python | 3.12+ |
 | PostgreSQL | 16 |
 | Docker | Latest |
-| FastAPI | Latest |
 
 ---
 
-# 4. Repository Structure
+# 6. Environment Configuration
 
-```text
-ai-knowledge-assistant
+Environment variables are managed separately from source code.
 
-├── backend
-│   ├── app
-│   ├── tests
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── alembic
-│
-├── frontend
-│   ├── app.py
-│   ├── requirements.txt
-│   └── venv
-│
-├── docker-compose.yml
-│
-└── docs
+Backend environment:
+
 ```
-
----
-
-# 5. Environment Configuration
-
-The application uses environment variables for configuration.
-
-Environment variables are stored locally in:
-
-```text
 backend/.env
 ```
 
-A template is provided:
+Template:
 
-```text
+```
 backend/.env.example
 ```
 
-Example configuration:
+Example:
 
 ```env
 APP_NAME=AI Knowledge Assistant API
+
 API_VERSION=1.0.0
+
 ENVIRONMENT=development
+
 
 DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/ai_assistant
 
+
+GROQ_API_KEY=your_key_here
+
+
 STORAGE_PROVIDER=local
 
+
 RETRIEVAL_TOP_K=5
+
 SIMILARITY_THRESHOLD=0.7
 ```
 
-Sensitive values such as API keys are not committed to Git.
+Sensitive information should never be committed.
 
 ---
 
-# 6. Docker Deployment
+# 7. Backend Deployment
 
-The backend and database services are managed using Docker Compose.
+The backend runs as a web service.
 
-Start services:
-
-```bash
-docker compose up --build
-```
-
-This starts:
-
-```text
-FastAPI Backend
-        |
-        |
-PostgreSQL + pgvector
-```
-
-Stop services:
-
-```bash
-docker compose down
-```
-
----
-
-# 7. Backend Container
-
-The backend container runs the FastAPI application.
-
-Responsibilities:
-
-- Handle API requests
-- Process documents
-- Generate embeddings
-- Perform retrieval
-- Generate answers
-
-The application starts using Uvicorn:
+Startup command:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-API documentation is available through:
+The application exposes:
 
-```text
-http://localhost:8000/docs
+```
+GET /
+```
+
+Health endpoint:
+
+```
+GET /health
+```
+
+API documentation:
+
+```
+/docs
 ```
 
 ---
 
-# 8. Database Deployment
+# 8. Render Deployment
 
-PostgreSQL runs as a Docker service.
+The backend is deployed using Render Web Services.
 
-The database provides:
-
-- Relational storage
-- Document metadata storage
-- Vector storage through pgvector
-
-Database initialization:
+Deployment process:
 
 ```text
-Docker Container Starts
+GitHub Repository
 
         |
 
-PostgreSQL Available
+        v
+
+Render Build
 
         |
+
+        v
+
+Install Dependencies
+
+        |
+
+        v
+
+Start FastAPI Application
+```
+
+---
+
+## Required Render Configuration
+
+Build command:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start command:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+---
+
+## Environment Variables
+
+Render stores production secrets separately.
+
+Required variables:
+
+```text
+DATABASE_URL
+
+GROQ_API_KEY
+
+STORAGE_PROVIDER
+
+ENVIRONMENT
+```
+
+---
+
+# 9. Streamlit Deployment
+
+The frontend is deployed using Streamlit Community Cloud.
+
+Deployment workflow:
+
+```text
+GitHub Repository
+
+        |
+
+        v
+
+Streamlit Cloud
+
+        |
+
+        v
+
+Install Requirements
+
+        |
+
+        v
+
+Launch Streamlit Application
+```
+
+---
+
+## Streamlit Configuration
+
+Required files:
+
+```
+frontend/
+
+├── app.py
+
+├── requirements.txt
+
+└── config.py
+```
+
+---
+
+## Backend Connection
+
+The frontend communicates with the backend through:
+
+```text
+HTTP Requests
+
+        |
+
+        v
+
+FastAPI API
+```
+
+The backend URL is configured through:
+
+```env
+API_URL=https://backend-url
+```
+
+---
+
+# 10. Database Deployment
+
+PostgreSQL stores:
+
+- Documents
+- Document chunks
+- Embeddings
+
+Database lifecycle:
+
+```text
+Database Created
+
+        |
+
+        v
 
 Alembic Migrations Applied
 
         |
+
+        v
 
 Application Connects
 ```
 
 ---
 
-# 9. Database Migrations
+# 11. Database Migrations
 
-Schema changes are managed using Alembic.
-
-Create a migration:
-
-```bash
-alembic revision --autogenerate -m "migration description"
-```
+Schema changes use Alembic.
 
 Apply migrations:
 
@@ -215,7 +392,13 @@ Apply migrations:
 alembic upgrade head
 ```
 
-Check current migration:
+Create migration:
+
+```bash
+alembic revision --autogenerate -m "description"
+```
+
+Migration status:
 
 ```bash
 alembic current
@@ -223,152 +406,232 @@ alembic current
 
 ---
 
-# 10. Running Tests
+# 12. Storage Deployment
 
-Automated tests are executed inside the backend container.
-
-Run:
-
-```bash
-docker exec -it ai_assistant_backend pytest
-```
-
-The test suite covers:
-
-- Health endpoints
-- Document upload workflow
-- RAG search response structure
-
-Example successful output:
-
-```text
-3 passed
-```
-
----
-
-# 11. Frontend Deployment
-
-The frontend is built using Streamlit.
-
-Local startup:
-
-```bash
-streamlit run app.py
-```
-
-The frontend communicates with the FastAPI backend through HTTP requests.
+The application supports multiple storage providers.
 
 Architecture:
 
 ```text
-Streamlit UI
+BaseStorage
 
       |
 
-HTTP Requests
++-------------+
 
-      |
+|             |
 
-FastAPI API
+Local       GCS
+
+Storage     Storage
 ```
 
 ---
 
-# 12. Production Deployment Considerations
+## Development
 
-For production deployment, the following improvements are recommended:
+Current:
+
+```
+Local Storage
+```
+
+Used for:
+
+- Testing
+- Development
+- Portfolio demonstration
+
+---
+
+## Production
+
+Recommended:
+
+```
+Google Cloud Storage
+```
+
+Benefits:
+
+- Persistent storage
+- Better reliability
+- Scalable file storage
+
+---
+
+# 13. Current Production Considerations
+
+The current deployment is designed as a portfolio/demo application.
+
+Current limitations:
 
 ## Authentication
 
-Add:
+Not yet implemented.
+
+Future support:
 
 - User accounts
-- Role-based permissions
 - Document ownership
+- Access control
+
+---
+
+## Multi-user Data Isolation
+
+The current version stores documents globally.
+
+Future version:
+
+```text
+User
+
+ |
+
+ +---- Documents
+
+        |
+
+        +---- Chunks
+```
 
 ---
 
 ## Background Processing
 
-Replace FastAPI background tasks with a dedicated task queue:
+Current:
 
-Examples:
+```
+FastAPI Background Tasks
+```
+
+Future:
+
+```
+API
+
+ |
+
+Message Queue
+
+ |
+
+Worker Processes
+```
+
+Possible technologies:
 
 - Celery
 - Redis Queue
 - Cloud Tasks
 
-Benefits:
-
-- Reliable processing
-- Retry support
-- Better scalability
-
 ---
 
-## Cloud Storage
-
-Move uploaded documents from local storage to:
-
-- Google Cloud Storage
-- Amazon S3
-- Azure Blob Storage
-
----
-
-## Monitoring
-
-Add:
-
-- Application metrics
-- Error tracking
-- Logging dashboards
-- Performance monitoring
-
----
-
-## Container Orchestration
-
-For larger deployments:
-
-- Kubernetes
-- Cloud Run
-- ECS
-- Azure Container Apps
-
----
-
-# 13. Security Considerations
+# 14. Security Considerations
 
 Production deployment should include:
 
-- Secret management
-- API authentication
-- Input validation
-- File upload restrictions
-- Network security
-- Database access controls
+## Secrets
+
+Use:
+
+- Environment variables
+- Secret managers
+
+Never commit:
+
+- API keys
+- Database credentials
 
 ---
 
-# 14. Deployment Summary
+## File Upload Security
 
-Current deployment approach:
+Future improvements:
+
+- File type validation
+- File size limits
+- Malware scanning
+
+---
+
+## API Protection
+
+Future improvements:
+
+- Authentication
+- Authorization
+- Rate limiting
+
+---
+
+# 15. Monitoring and Observability
+
+Future production monitoring should include:
+
+## Application Metrics
+
+Examples:
+
+- Request latency
+- API errors
+- Processing duration
+
+---
+
+## AI Metrics
+
+Examples:
+
+- Retrieval accuracy
+- Answer quality
+- Hallucination rate
+
+---
+
+## Infrastructure Metrics
+
+Examples:
+
+- CPU usage
+- Memory usage
+- Database performance
+
+---
+
+# 16. Deployment Summary
+
+Current deployment:
 
 ```text
-Docker Compose
+                    User
 
-    |
+                      |
 
-    +----------------+
-    |                |
-FastAPI        PostgreSQL
-Backend        + pgvector
+                      v
 
-    |
+             Streamlit Cloud
 
-Streamlit Frontend
+                      |
+
+                      v
+
+              FastAPI Backend
+
+                (Render)
+
+                      |
+
+        +-------------+-------------+
+
+        |                           |
+
+ PostgreSQL + pgvector        Storage Layer
+
+                              |
+
+                         Local / GCS
 ```
 
-The current setup provides a reproducible development environment while keeping the architecture ready for future cloud deployment.
+The current deployment provides a working cloud-hosted RAG application while maintaining a clear path toward production improvements such as authentication, scalable processing, and cloud-native infrastructure.

@@ -1,15 +1,16 @@
-# AI Knowledge Assistant Architecture Decisions
+# AI Knowledge Assistant - Architecture Decisions
 
-## 1. Overview
+## Overview
 
-This document describes the key technical and architectural decisions made during the development of the AI Knowledge Assistant.
+This document describes the key architectural decisions made during the development of the AI Knowledge Assistant.
 
-Each decision explains:
+The purpose of this document is to explain:
 
-- The problem being addressed
-- The chosen approach
-- The reasoning behind the choice
-- Trade-offs considered
+- Why specific technologies were selected
+- What trade-offs were considered
+- How the current architecture supports future production scaling
+
+The system is a Retrieval-Augmented Generation (RAG) application designed to answer questions over internal documents while maintaining transparency through source references.
 
 ---
 
@@ -17,99 +18,122 @@ Each decision explains:
 
 ## Context
 
-Large Language Models can generate useful responses but may produce inaccurate information when they do not have access to relevant source material.
+Large Language Models can generate fluent responses but do not inherently know an organization's private documents.
 
-For a document-based knowledge assistant, answers should be grounded in uploaded documents.
+A document question-answering system requires responses to be:
+
+- Grounded in company information
+- Traceable to source documents
+- Updated without retraining models
 
 ## Decision
 
-Use a Retrieval-Augmented Generation (RAG) architecture.
+Implement a Retrieval-Augmented Generation architecture.
 
-The system retrieves relevant document chunks before generating an answer.
-
-Workflow:
+The system follows:
 
 ```text
 User Question
 
-      |
+        |
 
 Question Embedding
 
-      |
+        |
 
-Vector Similarity Search
+Semantic Retrieval
 
-      |
+        |
 
 Relevant Document Chunks
 
-      |
+        |
 
-LLM Answer Generation
+LLM Generation
+
+        |
+
+Answer + Sources
 ```
 
 ## Reasoning
 
-RAG was chosen because it:
+RAG was selected because it provides:
 
-- Reduces hallucination risk
-- Allows answers based on private documents
-- Avoids expensive model fine-tuning
-- Supports updating knowledge by uploading new documents
+- Knowledge updates through document ingestion
+- Reduced hallucination risk
+- No requirement for model fine-tuning
+- Clear source attribution
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- Flexible knowledge updates
-- Easier maintenance
-- Lower training requirements
+- Flexible knowledge management
+- Lower development cost compared to fine-tuning
+- Suitable for enterprise document search
 
-Limitations:
+### Limitations
 
-- Retrieval quality directly affects answer quality
-- Requires embedding and vector search infrastructure
+- Answer quality depends heavily on retrieval quality
+- Requires embedding infrastructure
+- Requires chunking strategy optimisation
 
 ---
 
-# Decision 2: Use PostgreSQL with pgvector
+# Decision 2: Use PostgreSQL with pgvector for Vector Search
 
 ## Context
 
-The system requires both:
+The system requires storing:
 
-- Structured document metadata storage
-- Vector similarity search for embeddings
+- Document metadata
+- Processing states
+- Extracted text chunks
+- Vector embeddings
+
+A separate vector database could be introduced, but would increase infrastructure complexity.
 
 ## Decision
 
 Use PostgreSQL with the pgvector extension.
 
+Production deployment uses:
+
+```text
+Neon PostgreSQL + pgvector
+```
+
+Local development uses:
+
+```text
+Docker PostgreSQL + pgvector
+```
+
 ## Reasoning
 
 PostgreSQL was selected because it provides:
 
-- Reliable relational storage
-- Strong ecosystem support
-- Transaction management
-- Vector similarity capabilities through pgvector
+- Relational data management
+- Vector similarity search
+- Transaction support
+- Strong ecosystem compatibility
 
-This avoids introducing a separate vector database during early development.
+Using PostgreSQL allows document metadata and embeddings to remain within one database system.
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- One database system
-- Lower operational complexity
-- Easier local development
+- Reduced infrastructure complexity
+- Easier development workflow
+- SQL + vector search in one system
 
-Limitations:
+### Limitations
 
-- Dedicated vector databases may provide better performance at very large scale
+At very large scale, dedicated vector databases may provide better retrieval performance.
 
-Future alternatives:
+Potential future alternatives:
 
 - Pinecone
 - Weaviate
@@ -117,96 +141,176 @@ Future alternatives:
 
 ---
 
-# Decision 3: Use FastAPI for Backend API
+# Decision 3: Separate Frontend and Backend Applications
 
 ## Context
 
-The application requires an API layer to manage:
+The application contains different responsibilities:
 
-- Document uploads
-- Search requests
-- Background processing
-- AI service integration
+Backend:
+
+- API handling
+- AI pipeline
+- Database operations
+- Document processing
+
+Frontend:
+
+- User interaction
+- Document upload interface
+- Chat experience
 
 ## Decision
 
-Use FastAPI as the backend framework.
+Separate the applications.
+
+Architecture:
+
+```text
+Streamlit Frontend
+
+        |
+
+        |
+
+FastAPI Backend
+
+        |
+
+        |
+
+Database + AI Services
+```
+
+## Reasoning
+
+This separation provides:
+
+- Independent development
+- Clear responsibility boundaries
+- Easier replacement of frontend technology
+- Better production deployment flexibility
+
+## Trade-offs
+
+### Advantages
+
+- Cleaner architecture
+- Easier scaling
+- Better maintainability
+
+### Limitations
+
+- Requires API communication
+- Additional deployment components
+
+---
+
+# Decision 4: Use FastAPI as the Backend Framework
+
+## Context
+
+The backend requires:
+
+- REST APIs
+- Request validation
+- AI service integration
+- Database communication
+
+## Decision
+
+Use FastAPI.
 
 ## Reasoning
 
 FastAPI was selected because it provides:
 
-- High performance
-- Automatic API documentation
 - Strong typing with Pydantic
-- Easy integration with Python AI libraries
+- Automatic OpenAPI documentation
+- High performance
+- Excellent Python AI ecosystem compatibility
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
 - Developer friendly
-- Good fit for ML/AI applications
-- Built-in validation
+- Good support for ML applications
+- Easy API testing
 
-Limitations:
+### Limitations
 
-- Requires additional components for advanced background processing
+For large production workloads, additional infrastructure is required for:
+
+- Background jobs
+- Distributed processing
+- Advanced monitoring
 
 ---
 
-# Decision 4: Separate Storage Using an Abstraction Layer
+# Decision 5: Implement Storage Abstraction
 
 ## Context
 
-Uploaded documents need persistent storage.
+Uploaded documents require persistent storage.
 
-The application should support both:
+The system should support:
 
-- Local development storage
-- Cloud storage in production
+Development:
+
+```text
+Local File Storage
+```
+
+Production:
+
+```text
+Cloud Object Storage
+```
 
 ## Decision
 
-Create a storage interface using an abstract base class.
+Create a storage abstraction layer.
 
-Current implementations:
+Architecture:
 
 ```text
 BaseStorage
 
-     |
+      |
 
-+------------+
-|            |
++-------------+
 
-LocalStorage GCSStorage
+|             |
+
+LocalStorage  GCSStorage
 ```
 
 ## Reasoning
 
-The abstraction prevents business logic from depending on a specific storage provider.
+Business logic should not depend on a specific storage provider.
 
-Benefits:
+The abstraction allows changing storage without modifying:
 
-- Easier provider migration
-- Improved testing
-- Reduced coupling
+- API endpoints
+- Document processing logic
+- Retrieval workflow
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- Flexible architecture
-- Cleaner code separation
+- Easier cloud migration
+- Improved testing
+- Reduced coupling
 
-Limitations:
+### Limitations
 
-- Additional abstraction layer
+- Additional abstraction complexity
 
 ---
 
-# Decision 5: Process Documents Asynchronously
+# Decision 6: Process Documents Asynchronously
 
 ## Context
 
@@ -216,66 +320,70 @@ Document processing includes expensive operations:
 - Text chunking
 - Embedding generation
 
-Running these operations during upload would increase response time.
+Running these operations during upload would create slow API responses.
 
 ## Decision
 
-Use background processing after document upload.
+Process documents asynchronously after upload.
 
 Workflow:
 
 ```text
 Upload Request
 
-      |
+        |
 
-Store File
+Store Document
 
-      |
+        |
 
 Return Response
 
-      |
+        |
 
 Background Processing
+
+        |
+
+Generate Embeddings
+
+        |
+
+Update Status
 ```
 
 ## Reasoning
 
 This improves:
 
-- API responsiveness
 - User experience
-- Scalability
+- API responsiveness
+- System scalability
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- Faster upload endpoint
+- Faster uploads
 - Better user experience
 
-Limitations:
+### Limitations
 
-- Requires status tracking
-- More complex error handling
+Current implementation uses FastAPI background tasks.
 
-Future improvement:
+For larger workloads, this should evolve into:
 
-Replace FastAPI background tasks with a dedicated queue system.
-
-Examples:
-
-- Celery
-- Redis Queue
+- Celery workers
+- Redis queues
+- Cloud Tasks
 
 ---
 
-# Decision 6: Use Sentence Transformers for Embeddings
+# Decision 7: Use Sentence Transformers for Embeddings
 
 ## Context
 
-The RAG pipeline requires converting text into numerical vectors.
+Semantic retrieval requires converting text into numerical representations.
 
 ## Decision
 
@@ -292,181 +400,198 @@ for embedding generation.
 The model provides:
 
 - Good semantic representation
-- Efficient local inference
-- No external API dependency
+- Fast inference
+- Local execution
+- No dependency on external embedding APIs
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- Free to run locally
-- Fast inference
-- Suitable for document search
+- Low cost
+- Fast processing
+- Easy deployment
 
-Limitations:
+### Limitations
 
-- Smaller models may perform worse than larger embedding models
+Larger embedding models may provide improved retrieval quality.
 
 Future alternatives:
 
 - OpenAI embeddings
-- Larger transformer embedding models
+- Larger transformer models
+- Domain-specific embedding models
 
 ---
 
-# Decision 7: Enforce Grounded LLM Responses
+# Decision 8: Ground LLM Responses Using Retrieved Context
 
 ## Context
 
-LLMs may generate unsupported information.
+LLMs can generate unsupported information when answering open-ended questions.
 
-For a knowledge assistant, reliability is more important than creativity.
+For enterprise knowledge systems, reliability is more important than creativity.
 
 ## Decision
 
-Restrict LLM responses to retrieved document context.
+Restrict responses to retrieved document context.
 
-The system instructs the model to:
+The generation pipeline instructs the model to:
 
-- Use only provided context
-- Avoid assumptions
-- State when information is unavailable
+- Use only retrieved information
+- Avoid unsupported assumptions
+- Indicate when information is unavailable
 - Return source references
 
 ## Reasoning
 
 This improves:
 
-- Trustworthiness
+- Trust
 - Transparency
-- User confidence
+- Enterprise suitability
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- Reduced hallucinations
-- Better enterprise suitability
+- Reduced hallucination risk
+- More reliable answers
 
-Limitations:
+### Limitations
 
-- May refuse questions when information is unavailable
-
----
-
-# Decision 8: Use Docker for Development Environment
-
-## Context
-
-The application contains multiple dependencies:
-
-- FastAPI
-- PostgreSQL
-- pgvector
-- Python libraries
-
-## Decision
-
-Use Docker Compose for local development.
-
-## Reasoning
-
-Docker provides:
-
-- Reproducible environments
-- Easier onboarding
-- Consistent dependencies
-
-## Trade-offs
-
-Advantages:
-
-- Environment consistency
-- Easier deployment transition
-
-Limitations:
-
-- Additional tooling complexity
+- May refuse questions outside available documents
 
 ---
 
-# Decision 9: Separate Frontend and Backend Applications
+# Decision 9: Use Managed Cloud Infrastructure
 
 ## Context
 
-The application contains:
+The application required deployment beyond local development.
 
-- API backend logic
-- User interface
+The system needed:
+
+- Hosted backend
+- Managed database
+- Public demonstration environment
 
 ## Decision
 
-Separate the FastAPI backend and Streamlit frontend.
-
-Structure:
+Deploy using:
 
 ```text
-Backend
+Frontend:
+Streamlit Community Cloud
 
-FastAPI
-Business Logic
-Database
-AI Pipeline
+Backend:
+Render
 
-
-Frontend
-
-Streamlit
-User Interface
-API Communication
+Database:
+Neon PostgreSQL + pgvector
 ```
 
 ## Reasoning
 
-Benefits:
+This provides:
 
-- Independent development
-- Clear separation of responsibilities
-- Easier future frontend replacement
+- Simple deployment workflow
+- Managed infrastructure
+- Public accessibility for demonstrations
 
 ## Trade-offs
 
-Advantages:
+### Advantages
 
-- Better maintainability
-- Scalable architecture
+- Low operational overhead
+- Suitable for portfolio deployment
+- Easy iteration
 
-Limitations:
+### Limitations
 
-- Requires API communication layer
+Production enterprise systems would require additional components:
+
+- Authentication
+- Monitoring
+- Secrets management
+- Scalable processing workers
 
 ---
 
-# Summary of Key Decisions
+# Decision 10: Delay Authentication Until Multi-User Version
 
-| Decision | Choice |
+## Context
+
+The current application is designed as a demonstration and portfolio system.
+
+Future enterprise usage requires:
+
+- User accounts
+- Document ownership
+- Permission management
+
+## Decision
+
+Authentication is planned for the next version.
+
+The current version includes:
+
+- Document deletion functionality
+- Clear document management controls
+
+## Reasoning
+
+The focus of the first version is validating:
+
+- RAG pipeline quality
+- Document processing architecture
+- AI retrieval workflow
+
+Authentication will be introduced when supporting multiple users.
+
+## Future Implementation
+
+Potential additions:
+
+- OAuth2 authentication
+- JWT tokens
+- User-document ownership relationships
+- Role-based access control
+
+---
+
+# Summary of Architectural Decisions
+
+| Area | Decision |
 |---|---|
 | AI Architecture | Retrieval-Augmented Generation |
-| Backend Framework | FastAPI |
-| Database | PostgreSQL + pgvector |
-| Storage | Storage abstraction layer |
-| Embeddings | Sentence Transformers |
-| Processing | Background tasks |
+| Backend | FastAPI |
 | Frontend | Streamlit |
-| Deployment | Docker Compose |
-| LLM Reliability | Grounded responses |
+| Database | Neon PostgreSQL + pgvector |
+| Embeddings | Sentence Transformers |
+| LLM | Groq API |
+| Storage | Abstract storage layer |
+| Processing | Background document processing |
+| Deployment | Render + Streamlit Cloud |
+| Migrations | Alembic |
+| Future Security | Authentication and authorization |
 
 ---
 
-# Future Architectural Improvements
+# Final Notes
 
-Potential future decisions:
+The current architecture prioritizes:
 
-- Dedicated task queue for processing
-- Authentication system
-- Multi-user document permissions
-- Cloud-native deployment
-- Advanced monitoring
-- Automated RAG evaluation pipeline
+- Modular design
+- Clear separation of responsibilities
+- Explainable AI responses
+- Cloud deployment readiness
+- Future scalability
 
----
+The next production evolution would introduce:
+
+- Authentication
+- Multi-user document isolation
+- Dedicated processing workers
+- Monitoring and observability
+- Automated RAG evaluation

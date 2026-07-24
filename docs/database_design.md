@@ -2,16 +2,16 @@
 
 ## 1. Overview
 
-The AI Knowledge Assistant uses PostgreSQL as the primary relational database.
+The AI Knowledge Assistant uses PostgreSQL as the primary database.
 
-The database stores:
+The database supports the Retrieval-Augmented Generation (RAG) workflow by storing:
 
-- Uploaded document metadata
-- Document processing states
+- Document metadata
+- Processing states
 - Extracted document chunks
-- Vector embeddings used for semantic search
+- Vector embeddings for semantic search
 
-The database is designed to support Retrieval-Augmented Generation (RAG) workflows by combining structured document information with vector similarity search.
+The database combines traditional relational storage with vector similarity search through the **pgvector** extension.
 
 ---
 
@@ -19,246 +19,390 @@ The database is designed to support Retrieval-Augmented Generation (RAG) workflo
 
 ## Database
 
-- PostgreSQL
+```
+PostgreSQL
+```
 
 ## Vector Extension
 
-- pgvector
+```
+pgvector
+```
 
 ## ORM
 
-- SQLAlchemy
+```
+SQLAlchemy
+```
 
-The application uses SQLAlchemy models to define database tables and relationships.
+## Migration Tool
 
-Database migrations are managed using Alembic.
+```
+Alembic
+```
+
+The application uses SQLAlchemy models to define database structures and Alembic to manage schema changes.
 
 ---
 
-# 3. Entity Relationship Overview
+# 3. Database Architecture
+
+The database is responsible for two main functions:
+
+```text
+Relational Data Storage
+
+        +
+
+Vector Similarity Search
+```
+
+Architecture:
+
+```text
+Application
+
+     |
+
+SQLAlchemy ORM
+
+     |
+
+PostgreSQL
+
+     |
+
++----------------+
+
+|                |
+
+Tables        pgvector
+
+                |
+
+          Embeddings
+```
+
+---
+
+# 4. Entity Relationship Model
 
 ```mermaid
 erDiagram
 
     DOCUMENT ||--o{ DOCUMENT_CHUNK : contains
 
+
     DOCUMENT {
+
         int id
+
         string filename
+
         string file_path
+
         string file_type
+
         int file_size
+
         string processing_status
+
         datetime created_at
+
         datetime processing_started_at
+
         datetime processing_completed_at
+
         string error_message
+
     }
+
 
     DOCUMENT_CHUNK {
+
         int id
+
         int document_id
+
         int chunk_index
+
         int page_number
+
         text content
+
         vector embedding
+
     }
 ```
 
-The database follows a one-to-many relationship:
+Relationship:
 
-```
+```text
 Document
+
     |
-    |
+
     +---- DocumentChunk
+
     +---- DocumentChunk
+
     +---- DocumentChunk
 ```
 
-A single document can contain multiple processed chunks.
+A single document can contain many searchable chunks.
 
 ---
 
-# 4. Document Table
-
-The `documents` table stores metadata about uploaded files.
+# 5. Document Table
 
 ## Purpose
 
-The table tracks:
+The `documents` table stores information about uploaded files.
 
-- Original uploaded file information
+It tracks:
+
+- Original file details
 - Storage location
 - Processing lifecycle
 - Processing errors
 
 ---
 
-## Columns
+## Schema
 
 | Column | Type | Description |
 |---|---|---|
 | id | Integer | Primary key |
 | filename | String | Original uploaded filename |
-| file_path | String | Location in storage provider |
-| file_type | String | MIME type of uploaded file |
+| file_path | String | Storage location |
+| file_type | String | MIME type |
 | file_size | Integer | File size in bytes |
 | processing_status | String | Current processing state |
 | created_at | DateTime | Upload timestamp |
-| processing_started_at | DateTime | Processing start timestamp |
-| processing_completed_at | DateTime | Processing completion timestamp |
-| error_message | Text | Error details when processing fails |
+| processing_started_at | DateTime | Processing start time |
+| processing_completed_at | DateTime | Completion time |
+| error_message | Text | Processing failure details |
 
 ---
 
-# 5. Document Processing Status
+# 6. Document Lifecycle
 
-Documents move through different processing states.
+Documents move through processing states.
 
-## Successful Flow
+Successful workflow:
 
 ```text
+UPLOAD
+
+   |
+
+   v
+
 UPLOADED
-    |
-    v
+
+   |
+
+   v
+
 PROCESSING
-    |
-    v
+
+   |
+
+   v
+
 COMPLETED
 ```
 
-## Failed Flow
+Failure workflow:
 
 ```text
-UPLOADED
-    |
-    v
 PROCESSING
-    |
-    v
+
+   |
+
+   v
+
 FAILED
 ```
 
-The status allows the application to track background processing progress.
+The status field allows the frontend to display processing progress.
 
 ---
 
-# 6. Document Chunk Table
+# 7. Document Chunk Table
 
-The `document_chunks` table stores processed sections of documents.
+## Purpose
 
-During document processing:
+The `document_chunks` table stores processed sections of uploaded documents.
 
-1. PDF text is extracted.
-2. Text is divided into smaller chunks.
-3. Each chunk receives an embedding vector.
-4. Chunks are stored for retrieval.
+During processing:
+
+```text
+PDF
+
+ |
+
+Text Extraction
+
+ |
+
+Chunking
+
+ |
+
+Embedding Generation
+
+ |
+
+Database Storage
+```
 
 ---
 
-## Columns
+## Schema
 
 | Column | Type | Description |
 |---|---|---|
 | id | Integer | Primary key |
-| document_id | Integer | Foreign key to documents table |
-| chunk_index | Integer | Position of chunk within document |
-| page_number | Integer | Original PDF page number |
-| content | Text | Extracted chunk text |
-| embedding | Vector | Semantic embedding representation |
+| document_id | Integer | Related document |
+| chunk_index | Integer | Position inside document |
+| page_number | Integer | Original PDF page |
+| content | Text | Extracted text |
+| embedding | Vector | Semantic representation |
 
 ---
 
-# 7. Vector Embeddings
+# 8. Vector Embedding Storage
 
-The system uses vector embeddings to enable semantic search.
+The system uses embeddings to enable semantic search.
 
-Each document chunk receives an embedding generated using:
-
-```text
-Sentence Transformers
-all-MiniLM-L6-v2
-```
-
-The embedding converts text into a numerical vector representation.
-
-Example:
+Process:
 
 ```text
-Document text
+Document Chunk
 
         |
+
         v
 
 Embedding Model
 
         |
+
         v
 
-[0.023, -0.114, 0.532, ...]
+Vector Representation
+
+        |
+
+        v
+
+pgvector Storage
 ```
 
-These vectors are stored using PostgreSQL pgvector.
+Example:
+
+```text
+Text:
+
+"The application supports Linux"
+
+
+Embedding:
+
+[
+0.023,
+-0.114,
+0.532,
+...
+]
+```
+
+The vector representation allows the system to compare meaning rather than exact words.
 
 ---
 
-# 8. Similarity Search
+# 9. Similarity Search
 
 When a user asks a question:
 
-1. The question is converted into an embedding.
-2. The database compares the question vector against stored chunk vectors.
-3. The closest chunks are returned.
-
-The system uses cosine distance.
-
 ```text
-Lower distance
-        |
-        v
-More similar content
+User Question
+
+       |
+
+       v
+
+Question Embedding
+
+       |
+
+       v
+
+Compare Against Stored Vectors
+
+       |
+
+       v
+
+Retrieve Similar Chunks
 ```
 
-```text
-Higher distance
-        |
-        v
-Less relevant content
-```
+The system uses cosine similarity/distance.
 
-Retrieved chunks are then passed to the LLM for answer generation.
+Concept:
+
+```text
+Closer vector distance
+
+        |
+
+        v
+
+More semantically similar
+```
 
 ---
 
-# 9. Database Access Layer
+# 10. Database Access Layer
 
-Database operations are separated from API logic.
+Database operations are separated from API routes.
 
-Responsibilities include:
-
-- Creating database sessions
-- Querying documents
-- Retrieving document chunks
-- Managing persistence
-
-The application uses:
+Architecture:
 
 ```text
-Router
-   |
+API Router
+
+     |
+
 Service Layer
-   |
+
+     |
+
+Database Access Layer
+
+     |
+
 SQLAlchemy Models
-   |
-PostgreSQL Database
+
+     |
+
+PostgreSQL
 ```
+
+Responsibilities:
+
+- Create database sessions
+- Query documents
+- Retrieve chunks
+- Persist processing results
+- Manage transactions
 
 ---
 
-# 10. Migrations
+# 11. Database Migrations
 
-Database schema changes are managed using Alembic.
+Database changes are managed using Alembic.
 
 Migration workflow:
 
@@ -267,60 +411,154 @@ Modify SQLAlchemy Model
 
         |
 
-Create Migration
+        v
+
+Generate Migration
 
         |
+
+        v
 
 Apply Migration
 
         |
 
-Database Schema Updated
+        v
+
+Database Updated
 ```
 
-Example:
+Commands:
+
+Create migration:
 
 ```bash
-alembic revision --autogenerate
+alembic revision --autogenerate -m "description"
+```
+
+Apply migration:
+
+```bash
 alembic upgrade head
 ```
 
+Check migration state:
+
+```bash
+alembic current
+```
+
 ---
 
-# 11. Design Considerations
+# 12. Design Decisions
 
-## Separation of Metadata and Content
+## Separate Metadata and Content
 
-Document metadata and processed chunks are stored separately.
+Document metadata and chunks are stored separately.
 
 Benefits:
 
-- Easier document management
+- Cleaner data model
+- Faster document management
 - Efficient retrieval
-- Better scalability
 
 ---
 
-## Vector Search Support
+## Use PostgreSQL + pgvector
 
-Using pgvector allows the application to perform semantic search directly inside PostgreSQL.
+The system avoids introducing a separate vector database during early development.
 
 Benefits:
 
-- Reduced infrastructure complexity
 - Single database system
-- Easy integration with relational data
+- Lower operational complexity
+- Easier local development
 
 ---
 
-## Future Improvements
+## Store Page Numbers
 
-Possible database improvements:
+Each chunk stores its original PDF page number.
 
-- User and authentication tables
+Benefits:
+
+- Source references
+- Better user trust
+- Easier document verification
+
+---
+
+# 13. Current Limitations
+
+The current database design does not yet include:
+
+- Users
+- Authentication
 - Document ownership
-- Access permissions
-- Improved indexing strategies
-- Dedicated vector database for large-scale deployments
+- Permission management
+- Multi-tenant separation
+
+These will be introduced in a future version.
 
 ---
+
+# 14. Future Improvements
+
+Potential improvements:
+
+## User Management
+
+Add:
+
+- Users table
+- Authentication records
+- Document ownership relationships
+
+Example:
+
+```text
+User
+
+ |
+
+ +---- Documents
+```
+
+---
+
+## Access Control
+
+Add:
+
+- Roles
+- Permissions
+- Shared documents
+
+---
+
+## Scaling Improvements
+
+For larger workloads:
+
+- Advanced indexing
+- Read replicas
+- Dedicated vector databases
+
+Possible alternatives:
+
+- Pinecone
+- Weaviate
+- Milvus
+
+---
+
+# Summary
+
+The database architecture provides:
+
+- Reliable document storage
+- Vector-based semantic retrieval
+- Clear document lifecycle tracking
+- Foundation for future multi-user expansion
+
+The design balances simplicity for the current portfolio deployment while maintaining a path toward production scalability.
