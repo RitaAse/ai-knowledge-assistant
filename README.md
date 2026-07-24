@@ -100,7 +100,7 @@ Users can upload PDF documents which are processed through the RAG pipeline.
 Streamlit application:
 
 ```text
-<YOUR_STREAMLIT_URL>
+https://ai-knowledge-assistant-cgakggkjibixqea8dt8bzw.streamlit.app/
 ```
 
 ## Backend API
@@ -108,13 +108,13 @@ Streamlit application:
 FastAPI backend:
 
 ```text
-<YOUR_RENDER_BACKEND_URL>
+https://ai-knowledge-assistant-nu4e.onrender.com
 ```
 
 Interactive Swagger documentation:
 
 ```text
-<YOUR_RENDER_BACKEND_URL>/docs
+https://ai-knowledge-assistant-nu4e.onrender.com/docs
 ```
 
 ---
