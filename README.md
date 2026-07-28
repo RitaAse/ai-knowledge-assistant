@@ -1458,5 +1458,3 @@ It is intended for educational, demonstration, and portfolio purposes.
 If you'd like to discuss the project, provide feedback, or connect professionally, feel free to reach out through GitHub or LinkedIn.
 
 If you found this project useful, consider giving the repository a ⭐.
-
-<!-- CI test -->
